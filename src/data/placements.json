@@ -1,0 +1,153 @@
+{
+  "source": "DTF placement and size table from the user's brief (industry-standard placements cross-checked against American HTV Supply's print-size guide).",
+  "verified": "2026-11-03",
+  "units": "inches; downIn = distance from the collar seam to the top of the design",
+  "sizeWidthTable": {
+    "appliesTo": "placements with scalesWithSize: true (full front and full back); width = defaultW x table[size] / table.L",
+    "widths": { "XS": 9, "S": 10, "M": 10.75, "L": 11, "XL": 11.25, "2XL": 11.75, "3XL": 12.25, "4XL": 12.75, "5XL": 13.25 }
+  },
+  "collarOffset": {
+    "appliesTo": "placements with collarRule 'adult-front'",
+    "smallToXL": 3,
+    "twoXLUp": 3.5,
+    "youth": 2.25
+  },
+  "placements": [
+    {
+      "id": "adult-full-front", "label": "Adult full front", "side": "front", "sizeClass": "adult",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "polo", "crop-tee", "crop-crew", "muscle-tee", "tank"],
+      "defaultW": 11, "defaultH": 11, "minW": 10, "maxW": 12, "maxH": null,
+      "downIn": 3, "downNote": null, "collarRule": "adult-front", "scalesWithSize": true, "offsetIn": 0, "vertical": false,
+      "oversize": { "minW": 12, "maxW": 15, "downIn": 2 },
+      "notes": "Oversize option: 12 to 15 in wide, 2 in below the collar. AHTV guide: adult full front 9 to 12 in."
+    },
+    {
+      "id": "center-chest", "label": "Center chest", "side": "front", "sizeClass": "adult",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "hoodie", "crop-tee", "crop-crew", "crop-hoodie", "muscle-tee", "tank"],
+      "defaultW": 8, "defaultH": 4, "minW": 6, "maxW": 10, "maxH": null,
+      "downIn": 3, "downNote": null, "collarRule": "adult-front", "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": ""
+    },
+    {
+      "id": "left-chest", "label": "Left chest", "side": "front", "sizeClass": "adult",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "polo", "crop-tee", "crop-crew", "muscle-tee", "tank"],
+      "defaultW": 3.5, "defaultH": 2, "minW": 2.5, "maxW": 4.5, "maxH": null,
+      "downIn": 3, "downNote": null, "collarRule": "adult-front", "scalesWithSize": false, "offsetIn": 3.75, "vertical": false,
+      "oversize": null,
+      "notes": "Centre the design 3.5 to 4 in from the centreline, on the wearer's left. AHTV guide: left chest 3 to 4.5 in."
+    },
+    {
+      "id": "full-back", "label": "Full back", "side": "back", "sizeClass": "adult",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "hoodie", "zip-hoodie", "polo", "crop-tee", "crop-crew", "crop-hoodie", "muscle-tee", "tank"],
+      "defaultW": 12, "defaultH": 14, "minW": 11, "maxW": 13, "maxH": null,
+      "downIn": 4, "downNote": null, "collarRule": null, "scalesWithSize": true, "offsetIn": 0, "vertical": false,
+      "oversize": null,
+      "notes": "On hoodies the hood covers the top of a back print, so start back prints lower (about 5 to 6 in below the collar)."
+    },
+    {
+      "id": "upper-back", "label": "Upper back", "side": "back", "sizeClass": "adult",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "hoodie", "zip-hoodie", "crop-tee", "crop-crew", "crop-hoodie", "muscle-tee", "tank"],
+      "defaultW": 12, "defaultH": 4, "minW": 10, "maxW": 14, "maxH": null,
+      "downIn": 4, "downNote": null, "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": "On hoodies, check the hood does not hide it."
+    },
+    {
+      "id": "back-neck", "label": "Back neck", "side": "back", "sizeClass": "any",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "crop-tee", "crop-crew", "muscle-tee", "tank", "polo"],
+      "defaultW": 2.5, "defaultH": 2.5, "minW": 2, "maxW": 3, "maxH": null,
+      "downIn": 1.5, "downNote": "1 to 2 in below the collar seam", "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": ""
+    },
+    {
+      "id": "short-sleeve", "label": "Short sleeve", "side": "sleeve", "sizeClass": "any",
+      "garmentTypes": ["tee", "crop-tee", "polo"],
+      "defaultW": 3, "defaultH": 3, "minW": 2.5, "maxW": 3.5, "maxH": null,
+      "downIn": null, "downNote": "Centred between the shoulder seam and the sleeve hem", "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": ""
+    },
+    {
+      "id": "long-sleeve", "label": "Long sleeve / hoodie sleeve", "side": "sleeve", "sizeClass": "any",
+      "garmentTypes": ["long-sleeve", "hoodie", "zip-hoodie", "crewneck", "crop-hoodie", "crop-crew"],
+      "defaultW": 2.5, "defaultH": 12, "minW": 2, "maxW": 3.5, "maxH": 15,
+      "downIn": null, "downNote": "Runs down the sleeve; stop 3.5 in above the cuff", "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": true,
+      "oversize": null, "notes": "Up to 3.5 x 15 in, vertical."
+    },
+    {
+      "id": "hoodie-full-front", "label": "Hoodie full front (above pocket)", "side": "front", "sizeClass": "adult",
+      "garmentTypes": ["hoodie", "crop-hoodie"],
+      "defaultW": 11, "defaultH": 10, "minW": 10, "maxW": 12, "maxH": null,
+      "downIn": 3, "downNote": null, "collarRule": "adult-front", "scalesWithSize": true, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": "Must clear the kangaroo pocket seam and stay off seams."
+    },
+    {
+      "id": "hoodie-left-chest", "label": "Hoodie left chest", "side": "front", "sizeClass": "adult",
+      "garmentTypes": ["hoodie", "zip-hoodie", "crop-hoodie"],
+      "defaultW": 4, "defaultH": 4, "minW": 3, "maxW": 4, "maxH": null,
+      "downIn": 4, "downNote": null, "collarRule": null, "scalesWithSize": false, "offsetIn": 4, "vertical": false,
+      "oversize": null, "notes": "Wearer's left."
+    },
+    {
+      "id": "zip-hoodie-side", "label": "Zip hoodie split (per side)", "side": "front", "sizeClass": "adult",
+      "garmentTypes": ["zip-hoodie"],
+      "defaultW": 3.5, "defaultH": 3.5, "minW": 3.5, "maxW": 4, "maxH": null,
+      "downIn": 3, "downNote": null, "collarRule": "adult-front", "scalesWithSize": false, "offsetIn": 4, "vertical": false,
+      "oversize": null, "notes": "Zip hoodies get split or left-chest art, never a full front. One piece each side of the zipper: order 2."
+    },
+    {
+      "id": "crewneck-full-front", "label": "Crewneck full front", "side": "front", "sizeClass": "adult",
+      "garmentTypes": ["crewneck", "crop-crew"],
+      "defaultW": 11.5, "defaultH": 11, "minW": 11, "maxW": 12.5, "maxH": null,
+      "downIn": 3, "downNote": null, "collarRule": "adult-front", "scalesWithSize": true, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": ""
+    },
+    {
+      "id": "youth-full-front", "label": "Youth full front", "side": "front", "sizeClass": "youth",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "hoodie", "zip-hoodie"],
+      "defaultW": 9, "defaultH": 9, "minW": 7, "maxW": 9, "maxH": null,
+      "downIn": 2.25, "downNote": "2 to 2.5 in below the collar", "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": "Matches AHTV's youth guide of 7 to 9 in."
+    },
+    {
+      "id": "youth-full-back", "label": "Youth full back", "side": "back", "sizeClass": "youth",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "hoodie", "zip-hoodie"],
+      "defaultW": 10, "defaultH": 12, "minW": 9, "maxW": 10, "maxH": null,
+      "downIn": 3, "downNote": null, "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": ""
+    },
+    {
+      "id": "youth-left-chest", "label": "Youth left chest", "side": "front", "sizeClass": "youth",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "hoodie", "zip-hoodie", "polo"],
+      "defaultW": 2.5, "defaultH": 1.5, "minW": 2.5, "maxW": 3, "maxH": null,
+      "downIn": 2.5, "downNote": null, "collarRule": null, "scalesWithSize": false, "offsetIn": 3, "vertical": false,
+      "oversize": null, "notes": "Wearer's left."
+    },
+    {
+      "id": "toddler-front", "label": "Toddler front", "side": "front", "sizeClass": "toddler",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck", "hoodie"],
+      "defaultW": 6.5, "defaultH": 6.5, "minW": 6, "maxW": 7, "maxH": null,
+      "downIn": 2, "downNote": null, "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": ""
+    },
+    {
+      "id": "infant-front", "label": "Infant front", "side": "front", "sizeClass": "infant",
+      "garmentTypes": ["tee", "long-sleeve", "crewneck"],
+      "defaultW": 4.5, "defaultH": 4.5, "minW": 4, "maxW": 5, "maxH": null,
+      "downIn": 1.5, "downNote": null, "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": "Keep above the diaper line."
+    },
+    {
+      "id": "hat-front", "label": "Hat front", "side": "hat", "sizeClass": "any",
+      "garmentTypes": ["hat"],
+      "defaultW": 4, "defaultH": 2.25, "minW": 3, "maxW": 5, "maxH": 3,
+      "downIn": null, "downNote": "Centred on the front panel", "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": "AHTV: hat front 3 to 5 in wide, 3 in max height."
+    },
+    {
+      "id": "tote", "label": "Tote", "side": "tote", "sizeClass": "any",
+      "garmentTypes": ["tote"],
+      "defaultW": 9, "defaultH": 9, "minW": 8, "maxW": 10, "maxH": null,
+      "downIn": null, "downNote": "Centred on the bag", "collarRule": null, "scalesWithSize": false, "offsetIn": 0, "vertical": false,
+      "oversize": null, "notes": "AHTV guide: tote 8 to 10 in."
+    }
+  ]
+}

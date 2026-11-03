@@ -50,6 +50,12 @@ export interface ProcessSettings {
   snapBlackWhite: boolean
   /** Keyline around the art. color: hex string, or 'garment' to use the garment color. */
   outline: { enabled: boolean; px: number; color: string }
+  /**
+   * 1-bit line art: pixels darker than `threshold` (lightness 0..1) become ink, lighter pixels
+   * become transparent. ink: hex, 'original' (keep pixel color) or 'auto' (black or white,
+   * whichever contrasts with the garment).
+   */
+  lineArt: { enabled: boolean; threshold: number; ink: string }
 
   // ---- knockout ----
   /** Remove pixels within `tolerance` Delta E of the garment color. */
@@ -66,7 +72,8 @@ export interface ProcessSettings {
   /**
    * mode 'alpha': turn soft alpha (shadows, glows, feathering) into dots.
    * mode 'luminance': turn tones with luminance in [lumLo, lumHi] into dots;
-   *   ink 'original' keeps each pixel's color, otherwise ink is a hex color.
+   *   ink 'original' keeps each pixel's color, 'auto' picks black or white against the garment
+   *   (and sets darkInk to match), otherwise ink is a hex color.
    *   darkInk true: darker pixels get more coverage (dark ink on light garment).
    */
   halftone: {

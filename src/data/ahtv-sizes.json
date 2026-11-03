@@ -1,0 +1,341 @@
+{
+  "source": "https://americanhtvsupply.com/products/custom-dtf (variant list and prices as read by the user on 2026-11-03; every variant showed as sold out when fetched, so confirm availability in a browser)",
+  "verified": "2026-11-03",
+  "priceDate": "2026-11-03",
+  "currency": "USD",
+  "productUrl": "https://americanhtvsupply.com/products/custom-dtf",
+  "rule": "Choose the variant based on the longest side of your print; for a size not listed, pick the next size up and put the real size in 'Leave a Note for our Designers'. Bulk discounts apply across the total unit count.",
+  "noteFieldLabel": "Leave a Note for our Designers",
+  "printSizeGuide": {
+    "youthFullFrontWidthIn": [
+      7,
+      9
+    ],
+    "adultFullFrontWidthIn": [
+      9,
+      12
+    ],
+    "leftChestWidthIn": [
+      3,
+      4.5
+    ],
+    "hatFrontWidthIn": [
+      3,
+      5
+    ],
+    "hatFrontMaxHeightIn": 3,
+    "toteWidthIn": [
+      8,
+      10
+    ]
+  },
+  "variants": [
+    {
+      "label": "2x2",
+      "w": 2.0,
+      "h": 2.0,
+      "price": 0.59
+    },
+    {
+      "label": "3x2",
+      "w": 3.0,
+      "h": 2.0,
+      "price": 0.75
+    },
+    {
+      "label": "3x3",
+      "w": 3.0,
+      "h": 3.0,
+      "price": 0.94
+    },
+    {
+      "label": "3x4",
+      "w": 3.0,
+      "h": 4.0,
+      "price": 1.49
+    },
+    {
+      "label": "4x2",
+      "w": 4.0,
+      "h": 2.0,
+      "price": 0.99
+    },
+    {
+      "label": "4x3",
+      "w": 4.0,
+      "h": 3.0,
+      "price": 1.25
+    },
+    {
+      "label": "4x4",
+      "w": 4.0,
+      "h": 4.0,
+      "price": 1.42
+    },
+    {
+      "label": "5x6",
+      "w": 5.0,
+      "h": 6.0,
+      "price": 1.59
+    },
+    {
+      "label": "6x5",
+      "w": 6.0,
+      "h": 5.0,
+      "price": 1.99
+    },
+    {
+      "label": "6x6",
+      "w": 6.0,
+      "h": 6.0,
+      "price": 2.41
+    },
+    {
+      "label": "7x8",
+      "w": 7.0,
+      "h": 8.0,
+      "price": 2.69
+    },
+    {
+      "label": "7x9",
+      "w": 7.0,
+      "h": 9.0,
+      "price": 2.99
+    },
+    {
+      "label": "9x7",
+      "w": 9.0,
+      "h": 7.0,
+      "price": 3.99
+    },
+    {
+      "label": "8x10",
+      "w": 8.0,
+      "h": 10.0,
+      "price": 3.99
+    },
+    {
+      "label": "9x9",
+      "w": 9.0,
+      "h": 9.0,
+      "price": 3.5
+    },
+    {
+      "label": "9x11",
+      "w": 9.0,
+      "h": 11.0,
+      "price": 3.7
+    },
+    {
+      "label": "10x7",
+      "w": 10.0,
+      "h": 7.0,
+      "price": 3.8
+    },
+    {
+      "label": "10x8",
+      "w": 10.0,
+      "h": 8.0,
+      "price": 4.0
+    },
+    {
+      "label": "10x10",
+      "w": 10.0,
+      "h": 10.0,
+      "price": 4.6
+    },
+    {
+      "label": "10x11",
+      "w": 10.0,
+      "h": 11.0,
+      "price": 4.6
+    },
+    {
+      "label": "10x12",
+      "w": 10.0,
+      "h": 12.0,
+      "price": 4.6
+    },
+    {
+      "label": "11x4",
+      "w": 11.0,
+      "h": 4.0,
+      "price": 4.99
+    },
+    {
+      "label": "11x5",
+      "w": 11.0,
+      "h": 5.0,
+      "price": 4.99
+    },
+    {
+      "label": "11x7",
+      "w": 11.0,
+      "h": 7.0,
+      "price": 4.99
+    },
+    {
+      "label": "11x8",
+      "w": 11.0,
+      "h": 8.0,
+      "price": 4.99
+    },
+    {
+      "label": "11x9",
+      "w": 11.0,
+      "h": 9.0,
+      "price": 4.99
+    },
+    {
+      "label": "11x11",
+      "w": 11.0,
+      "h": 11.0,
+      "price": 4.99
+    },
+    {
+      "label": "11x13",
+      "w": 11.0,
+      "h": 13.0,
+      "price": 5.5
+    },
+    {
+      "label": "11x14",
+      "w": 11.0,
+      "h": 14.0,
+      "price": 5.5
+    },
+    {
+      "label": "13x11",
+      "w": 13.0,
+      "h": 11.0,
+      "price": 6.49
+    },
+    {
+      "label": "12x4",
+      "w": 12.0,
+      "h": 4.0,
+      "price": 5.99
+    },
+    {
+      "label": "12x5",
+      "w": 12.0,
+      "h": 5.0,
+      "price": 5.99
+    },
+    {
+      "label": "12x8",
+      "w": 12.0,
+      "h": 8.0,
+      "price": 5.99
+    },
+    {
+      "label": "12x9",
+      "w": 12.0,
+      "h": 9.0,
+      "price": 5.99
+    },
+    {
+      "label": "12x10",
+      "w": 12.0,
+      "h": 10.0,
+      "price": 5.99
+    },
+    {
+      "label": "12x12",
+      "w": 12.0,
+      "h": 12.0,
+      "price": 5.99
+    },
+    {
+      "label": "12x14",
+      "w": 12.0,
+      "h": 14.0,
+      "price": 5.99
+    },
+    {
+      "label": "12x15",
+      "w": 12.0,
+      "h": 15.0,
+      "price": 5.99
+    },
+    {
+      "label": "12x17",
+      "w": 12.0,
+      "h": 17.0,
+      "price": 5.99
+    },
+    {
+      "label": "13x13",
+      "w": 13.0,
+      "h": 13.0,
+      "price": 6.49
+    },
+    {
+      "label": "13x16",
+      "w": 13.0,
+      "h": 16.0,
+      "price": 6.49
+    },
+    {
+      "label": "13x17",
+      "w": 13.0,
+      "h": 17.0,
+      "price": 6.49
+    },
+    {
+      "label": "15x18",
+      "w": 15.0,
+      "h": 18.0,
+      "price": 7.25
+    },
+    {
+      "label": "16x13",
+      "w": 16.0,
+      "h": 13.0,
+      "price": 7.49
+    },
+    {
+      "label": "18x20",
+      "w": 18.0,
+      "h": 20.0,
+      "price": 8.25
+    },
+    {
+      "label": "20x20",
+      "w": 20.0,
+      "h": 20.0,
+      "price": 9.0
+    }
+  ],
+  "gangSheet": {
+    "product": "Upload a DTF Gang Sheet",
+    "widthIn": 22,
+    "lengthsIn": [
+      24,
+      40,
+      60,
+      80,
+      100,
+      120,
+      140,
+      160,
+      180,
+      200,
+      220,
+      240,
+      300,
+      400,
+      500,
+      600,
+      750,
+      1000
+    ],
+    "accepts": [
+      "png",
+      "jpg",
+      "svg"
+    ],
+    "maxFileSizeMB": 500,
+    "asks": "ready to print template (PNG)"
+  }
+}
