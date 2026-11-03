@@ -247,3 +247,17 @@ blockquote.note { margin: 6px 0 8px; padding: 10px 12px; background: var(--surfa
 .actual--shirt, .actual--black, .actual--checker { background-clip: padding-box; }
 .actual img.pix { image-rendering: pixelated; }
 .warn-line { color: var(--warn); font-weight: 600; }
+
+/* Prompt-first look step */
+.flow { margin: 6px 0 0; max-width: 60rem; }
+.card--next { border-color: var(--accent); box-shadow: 6px 6px 0 var(--accent); }
+.badge { margin-left: 10px; padding: 1px 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; background: var(--accent); color: var(--accent-fg); vertical-align: middle; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.chip { min-height: 36px; padding: 4px 12px; border: 2px solid var(--fg); background: var(--surface); color: var(--fg); font: inherit; font-size: 0.9rem; cursor: pointer; text-align: left; }
+.chip:hover:not(:disabled) { background: var(--surface-2); }
+.chip:disabled { opacity: 0.5; cursor: not-allowed; }
+.result-card { border: 2px solid var(--fg); border-left: 8px solid var(--accent); background: var(--surface-2); padding: 8px 14px 12px; margin: 0 0 12px; }
+.result-card h3 { margin: 10px 0 4px; font-size: 1rem; }
+.bullets { margin: 0 0 6px; padding-left: 1.2rem; }
+.bullets li { margin: 3px 0; }
+.lead--preset { margin: 14px 0 6px; }

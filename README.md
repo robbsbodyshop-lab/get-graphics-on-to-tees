@@ -17,15 +17,20 @@ Everything runs client-side: no accounts, no server, no uploads. After the first
 
 1. **Upload** PNG, JPG, WEBP or SVG. Shows pixel size, aspect ratio, alpha, semi-transparent pixel
    count, distinct colors (32 levels per channel) and PNG DPI.
-2. **Look**: free-text description plus 15 aesthetic presets (skate flat-color, horror / metal,
-   distressed relic, vintage tour tee, stamp logo, halftone photo, hand-drawn ink, collage, blackletter,
-   collegiate, sports throwback, playful, small front / big back, fade into garment, washed pairing).
-   A keyword match suggests a preset; no AI call.
+2. **Describe the look**: after the upload, write the aesthetic you want in plain words (or click an
+   example). The app reads your prompt and measures the image (flat logo, illustration or photo,
+   background, soft edges, dominant colors), then applies the knockout, texture, halftone, size,
+   garment color and upscaler settings in one go and lists what it did as bullets, with tips for
+   tweaking it, warnings for anything DTF can't do, and an Undo. Everything stays editable. The 15
+   aesthetic presets (skate flat-color, horror / metal, distressed relic, vintage tour tee, stamp logo,
+   halftone photo, hand-drawn ink, collage, blackletter, collegiate, sports throwback, playful,
+   small front / big back, fade into garment, washed pairing) remain as a starting point. No AI call;
+   it all runs in the browser.
 3. **Garment**: store → garment → color → size, or a custom garment.
 4. **Placement and size**: 19 placements with the proposed width scaled by garment size, a width
    slider, the mockup at true scale, the "seen from 6 feet" view, the effective DPI flag
    (✓ 300+, ⚠ 150-299, ✕ under 150) and the AHTV variant to order.
-5. **Knock out**: Delta E eyedropper with stacked picks and undo, garment-color knockout, flood-fill
+5. **Knock out (fine-tune)**: Delta E eyedropper with stacked picks and undo, garment-color knockout, flood-fill
    background removal, distress masks (scratched, cracked, speckle, sandblasted), halftone (45-65 LPI),
    edge fade into the garment, then hard alpha threshold, speck removal, optional choke / thicken.
 6. **Upscale**: Real-ESRGAN in a Web Worker with progress and cancel; Lanczos fallback; vectorize

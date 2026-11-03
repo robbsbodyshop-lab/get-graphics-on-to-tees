@@ -20,13 +20,14 @@ export function Status(props: { level: Level; children: ReactNode; testId?: stri
   )
 }
 
-export function Section(props: { id: string; num: number; title: string; lead?: ReactNode; children: ReactNode }): ReactElement {
+export function Section(props: { id: string; num: number; title: string; lead?: ReactNode; next?: boolean; children: ReactNode }): ReactElement {
   const hid = `${props.id}-h`
   return (
-    <section className="card" id={props.id} aria-labelledby={hid}>
+    <section className={`card ${props.next ? 'card--next' : ''}`} id={props.id} aria-labelledby={hid}>
       <h2 id={hid}>
         <span className="num" aria-hidden="true">{props.num}</span>
         {props.title}
+        {props.next && <span className="badge">Next</span>}
       </h2>
       {props.lead && <p className="lead">{props.lead}</p>}
       {props.children}

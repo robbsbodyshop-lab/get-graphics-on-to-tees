@@ -10,6 +10,7 @@ import type { PipelineReport } from '../lib/pipeline'
 import type { SourceFormat } from '../lib/decode'
 import type { UpscaleMode } from '../workers/pipeline.worker'
 import type { MockupFinish, MockupGarmentType } from './GarmentMockup'
+import type { ImageTraits, LookPlan } from '../lib/look/types'
 
 // ---------------------------------------------------------------------------------------------
 // Catalog data
@@ -175,6 +176,16 @@ export interface Loaded {
   note: string | null
   analysis: ImageAnalysis
   dominantColors: number
+  /** Measured once after decode; null if the measurement failed. */
+  traits: ImageTraits | null
+  traitsError: string | null
+}
+
+/** The last applied look, shown in the result card. */
+export interface LookResult {
+  plan: LookPlan
+  /** True once a control in steps 3-6 changed after applying. */
+  adjusted: boolean
 }
 
 export interface PreviewState {
@@ -240,6 +251,10 @@ export interface Studio {
   setLook: (s: string) => void
   preset: Preset | undefined
   applyPreset: (id: string) => void
+  /** Interpret the prompt and apply the resulting plan. Returns an error message or null. */
+  applyLook: () => string | null
+  undoLook: () => void
+  lookResult: LookResult | null
 
   settings: ProcessSettings
   update: (fn: (s: ProcessSettings) => void) => void
