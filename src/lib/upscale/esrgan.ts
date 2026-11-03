@@ -8,11 +8,29 @@ import { cloneImage } from '../image/core'
 // tile by tile so memory stays small and progress/cancel work. Alpha never goes through the model:
 // it is resized with Lanczos and thresholded later.
 
-export const MODEL_URL = `${import.meta.env.BASE_URL}models/realesr-general-x4v3.onnx`
+// Emitted by Vite as a hashed asset next to the worker, so the URL is right in dev and in builds
+// under any base path (a BASE_URL-relative path would resolve against the worker's own folder).
+export const MODEL_URL = new URL('../../assets/models/realesr-general-x4v3.onnx', import.meta.url).href
 const TILE = 128
 const PAD = 8 // input-space overlap on each side of a tile
 
 let sessionPromise: Promise<{ session: ort.InferenceSession; backend: string }> | null = null
+
+function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${what} timed out after ${Math.round(ms / 1000)} s`)), ms)
+    p.then(
+      (v) => {
+        clearTimeout(t)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(t)
+        reject(e)
+      },
+    )
+  })
+}
 
 export function loadEsrgan(): Promise<{ session: ort.InferenceSession; backend: string }> {
   if (!sessionPromise) {
@@ -20,18 +38,22 @@ export function loadEsrgan(): Promise<{ session: ort.InferenceSession; backend: 
       const isolated = (globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated === true
       ort.env.wasm.numThreads = isolated ? Math.min(4, navigator.hardwareConcurrency || 1) : 1
       ort.env.wasm.proxy = false
-      const res = await fetch(MODEL_URL)
+      const res = await withTimeout(fetch(MODEL_URL), 60000, 'Model download')
       if (!res.ok) throw new Error(`Model download failed (${res.status})`)
+      if ((res.headers.get('content-type') ?? '').includes('text/html')) throw new Error('Model URL returned a web page, not the model')
       const bytes = new Uint8Array(await res.arrayBuffer())
-      const tryCreate = async (eps: string[]) => ({ session: await ort.InferenceSession.create(bytes, { executionProviders: eps }), backend: eps[0] })
+      const tryCreate = async (eps: string[], ms: number) => ({
+        session: await withTimeout(ort.InferenceSession.create(bytes, { executionProviders: eps }), ms, `${eps[0]} model setup`),
+        backend: eps[0],
+      })
       if ('gpu' in navigator) {
         try {
-          return await tryCreate(['webgpu'])
+          return await tryCreate(['webgpu'], 20000)
         } catch {
-          // fall through to CPU
+          // no usable GPU: fall through to CPU
         }
       }
-      return await tryCreate(['wasm'])
+      return await tryCreate(['wasm'], 60000)
     })()
     sessionPromise.catch(() => {
       sessionPromise = null

@@ -10,7 +10,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE)
-      const files = ['./', './index.html', './models/realesr-general-x4v3.onnx', './favicon.svg']
+      const files = ['./', './index.html', './favicon.svg'] // the model and ORT wasm come from the manifest
       try {
         const res = await fetch(url('./precache-manifest.json'), { cache: 'no-store' })
         if (res.ok) files.push(...(await res.json()).map((f) => './' + f))

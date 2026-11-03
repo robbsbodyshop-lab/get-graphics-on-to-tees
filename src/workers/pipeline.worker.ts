@@ -52,7 +52,12 @@ function post(msg: WorkerResponse, transfer: Transferable[] = []) {
   ctx.postMessage(msg, transfer)
 }
 
-ctx.onmessage = async (e: MessageEvent<WorkerRequest>) => {
+// In production builds onnxruntime-web is bundled into this file, and its multithreaded WASM
+// starts its pthread workers from this same script with name "em-pthread". Those instances belong
+// to Emscripten: installing our handler there would replace its message handler and deadlock.
+const isOrtPthread = typeof self.name === 'string' && self.name.startsWith('em-pthread')
+
+if (!isOrtPthread) ctx.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const msg = e.data
   if (msg.type === 'setSource') {
     source = { width: msg.width, height: msg.height, data: new Uint8ClampedArray(msg.buffer) }

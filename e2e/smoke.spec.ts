@@ -49,6 +49,8 @@ test('smoke: sample PNG, black Gildan 5000 L, full front, Horror / metal -> 3300
   expect(out.info.hasSRGB).toBe(true)
   expect(out.semi).toBe(0) // only 0 or 255 alpha
   expect(out.opaque).toBeGreaterThan(1000)
+  // The default upscaler is the AI model; make sure it really ran instead of falling back.
+  await expect(page.locator('dt', { hasText: 'Upscaled with' }).locator('xpath=following-sibling::dd[1]')).toHaveText('Real-ESRGAN')
   expect(errors).toEqual([])
 })
 

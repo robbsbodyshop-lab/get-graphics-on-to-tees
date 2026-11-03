@@ -115,7 +115,7 @@ exist in `colors.json`.
 
 ## Upscaler
 
-`public/models/realesr-general-x4v3.onnx` is Real-ESRGAN general x4 v3 (SRVGGNetCompact, 1.2 M
+`src/assets/models/realesr-general-x4v3.onnx` (bundled by Vite as a hashed asset; license in `public/models/`) is Real-ESRGAN general x4 v3 (SRVGGNetCompact, 1.2 M
 parameters, 4.9 MB), BSD-3-Clause, © 2021 Xintao Wang (license next to the model). It came from the
 Hugging Face conversion `vlad-grig/realesr-general-x4v3-onnx`. Its 101 weight tensors were checked
 against the official `realesr-general-x4v3.pth` from the Real-ESRGAN v0.2.5.0 release (sha256

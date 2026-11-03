@@ -3,7 +3,7 @@
 Use this if the cloud session stops (credits, timeout, container reclaimed). Everything needed to
 continue is in this folder; the original brief is `docs/BRIEF.md`.
 
-_Last updated: 2026-11-03, build in progress: libraries, worker, upscaler done; UI being built._
+_Last updated: 2026-11-03. Build complete: all done criteria met (118 unit tests, Playwright smoke + 3 samples pass)._
 
 ## 1. Get the code onto your machine
 
@@ -53,25 +53,24 @@ and all three files in samples/ export cleanly. Update HANDOFF.md as you finish 
 
 ## 3. Status
 
-| Slice | State | Where |
-|---|---|---|
-| Scaffold (Vite 8 + React 19 + TS 7, Vitest 5, Playwright 1.63) | done | `package.json`, `vitest.config.ts` |
-| Data: AHTV variants + gang sheet, placements, colors, garments | done (colors/garments by a sub-agent: spot-check) | `src/data/*.json` |
-| Sizing math: variant pick, width scaling, collar offset, DPI flag | done, 22 tests | `src/lib/sizing.ts` |
-| Image ops: analyze, knockout (Delta E + flood), threshold, choke, thicken, specks, strokes, trim/crop/fit | done, 24 tests | `src/lib/image/{analyze,knockout,alpha,strokes,geometry}.ts` |
-| PNG encode/decode with pHYs 300 DPI + sRGB, Lanczos resize, color bleed, gang sheet packer + renderer, sample inputs | done, 21 tests | `src/lib/{png,resize,pack}.ts`, `samples/`, `scripts/make-samples.py` |
-| Halftone (alpha, luminance, edge fade), grunge masks + distress, posterize/desaturate/contrast/outline/color warnings | done, 58 tests in image/ | `src/lib/image/{halftone,masks,colorwork}.ts` |
-| Garment mockup SVG component | done (screenshot-checked) | `src/components/GarmentMockup.tsx` |
-| Settings defaults | done | `src/lib/settings.ts` |
-| Presets (15) + keyword suggester | done, 5 tests | `src/data/presets.json`, `src/lib/presets.ts` |
-| Pipeline (fixed order, report) | done, 8 tests incl. samples/shadow.png | `src/lib/pipeline.ts` |
-| Worker (preview + export lanes, cancel = terminate) | done | `src/workers/pipeline.worker.ts`, `src/lib/workerClient.ts` |
-| Upscaler: Real-ESRGAN general-x4v3 via onnxruntime-web, tiles, Lanczos fallback | done, verified in headless Chromium (WASM) and weights match the official .pth bit for bit | `src/lib/upscale/esrgan.ts`, `public/models/` |
-| Vectorize instead (imagetracerjs, OffscreenCanvas raster) | done, not yet exercised in a browser | `src/lib/upscale/vectorize.ts` |
-| UI: one scrolling page, steps 1-7, job sheet, gang sheet | sub-agent building | `src/App.tsx`, `src/components/`, `src/lib/{decode,jobSheet}.ts`, `src/workers/gang.worker.ts` |
-| Service worker (offline + COOP/COEP) and precache manifest | written, untested | `public/sw.js`, `vite.config.ts` |
-| Playwright smoke test + 3 sample exports | written, not yet run (needs the UI) | `e2e/smoke.spec.ts`, `playwright.config.ts` |
-| README, Vercel config, GitHub Pages workflow | done | `README.md`, `vercel.json`, `.github/workflows/deploy-pages.yml` |
+Everything in the brief is built and verified:
+
+- **Unit:** `npm test` → 15 files, 118 tests pass.
+- **End to end:** `npm run test:e2e` → 4 Playwright tests pass. The smoke test (shadow.png, black Gildan 5000 L, full front, Horror / metal, default AI upscaler) gives 3300 px wide, pHYs 300 DPI, sRGB, only 0/255 alpha, and asserts that Real-ESRGAN actually ran. The other three tests each export one file from `samples/` cleanly.
+- **Manual checks in headless Chromium:** SVG upload; the vectorize upscaler; offline reload through the service worker (cross-origin isolated); phone width (no horizontal scroll); gang sheet download; keyboard eyedropper; job sheet copy.
+- **Not verified:**
+  - the WebGPU path (the container has no GPU, so WASM was used);
+  - the Print button's paper output;
+  - real-world prints;
+  - live AHTV prices and availability.
+
+Two bugs were found and fixed during e2e:
+1. The model URL resolved against the worker folder in production. The model now lives in
+   `src/assets/models/` and is loaded with `new URL(..., import.meta.url)`.
+2. The bundled onnxruntime starts its pthread workers from our worker file (name `em-pthread`), and
+   our message handler deadlocked them. The handler is now skipped in those instances
+   (`src/workers/pipeline.worker.ts`).
+Model setup also has timeouts (20 s WebGPU, 60 s WASM) and falls back to Lanczos.
 
 ## 4. Decisions already made (with the reason)
 
@@ -101,7 +100,7 @@ and all three files in samples/ export cleanly. Update HANDOFF.md as you finish 
   ONNX conversions on Hugging Face: `vlad-grig/realesr-general-x4v3-onnx` (`onnx/model.onnx` 4.9 MB fp32,
   `model_fp16.onnx` 2.4 MB) and `CoderViking/realesr-general-x4v3-onnx`. Both claim the official
   weights (sha256 of the .pth: `8dc7edb9ac80ccdc30c3a5dca6616509367f05fbc184ad95b731f05bece96292`).
-  Input `[1,3,H,W]` RGB 0..1, output 4x, clamp. Ship it in `public/models/` so it works offline.
+  Input `[1,3,H,W]` RGB 0..1, output 4x, clamp. It lives in `src/assets/models/` and is referenced with `new URL(..., import.meta.url)` from the worker (a BASE_URL path broke in production because it resolved against `assets/`).
   Run in tiles (~256 px, 16 px overlap). Alpha goes through Lanczos, not the model. If it fails after
   two attempts, ship Lanczos only and say so in the README (brief's rule).
 - **Playwright** is pinned to 1.63.0 because the cloud box had Chromium for that version. On desktop,
@@ -124,16 +123,10 @@ and all three files in samples/ export cleanly. Update HANDOFF.md as you finish 
 - `sizing.ts`: `selectVariant`, `proposeWidth`, `sizeFromWidth`, `downFor`, `placementsFor`, `garmentDims`, `dpiFlag`, `effectiveDpi`.
 - `settings.ts`: `DEFAULT_SETTINGS`, `mergeSettings`, constants (300 DPI, 0.1 in margin, 0.04 in stroke, 0.15 in text, 70% solid).
 
-## 6. Remaining work, in order
+## 6. Possible follow-ups (not required by the brief)
 
-1-4. Done (presets, pipeline, worker, upscaler).
-5. UI (one scrolling page): upload stats + PNG DPI; look text + preset dropdown; store -> garment ->
-   color -> size (+ custom garment); placement, width slider/inches, mockup + ruler + 6 ft view + DPI
-   flag; knockout (eyedropper stack, undo, tolerance, before/after, removed count), distress, halftone,
-   fade, threshold, choke, specks, thicken; upscale; export PNG, job sheet (copy + print), gang sheet.
-   Keyboard operable, every input labelled, status = icon + text.
-6. Done: `public/sw.js` (test it with `npm run build && npx vite preview`, load twice, go offline).
-7. Written: `e2e/smoke.spec.ts`: upload a sample PNG, black Gildan 5000 L, full front, Horror / metal, export,
-   assert 3300 px wide and only 0/255 alpha.
-8. Done: README. Refresh it once the UI exists.
-9. `dev/esrgan-check.html` is a dev-only harness (open it on the dev server) that runs the AI upscaler through the worker and logs timings.
+- Long-sleeve placements: pass `rotateDesign` to the mockup and add a "rotate 90°" note to the job sheet.
+- Try the WebGPU path on a machine with a GPU (Chrome desktop). It should be much faster than WASM.
+- Push to GitHub (`git remote add origin <url>`, `git push -u origin main`) and enable Pages, or import into Vercel.
+- `dev/esrgan-check.html` is a dev-only harness (open it on `npm run dev`) that runs the AI upscaler through the worker and logs timings.
+- Oxlint shows 3 fast-refresh warnings (helpers exported next to components). They're harmless.
