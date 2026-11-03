@@ -56,7 +56,7 @@ const NUMBER_WORDS: Record<string, number> = {
 }
 
 const MASK_LABEL: Record<MaskKind, string> = {
-  cracked: 'Cracked',
+  cracked: 'Cracked ink',
   scratched: 'Scratched',
   speckle: 'Speckle',
   sandblasted: 'Sandblasted',
@@ -185,7 +185,6 @@ const TYPE_RULES: TypeRule[] = [
 const EXTRA_KEYWORDS: Record<string, string[]> = {
   'vintage-tour': ['tour tee', 'band tee', 'concert tee', 'tour shirt', 'band merch', 'tour merch'],
   'horror-metal': ['death metal', 'heavy metal', 'slasher'],
-  'fade-into-garment': ['fades out', 'fade out', 'fading out'],
 }
 
 function rankPreset(text: string): { preset: Preset; matched: string[] } | null {
@@ -407,7 +406,7 @@ export function interpretLook(ctx: LookContext): LookPlan {
     const starts = describePresetSettings(presetStart)
     say(
       10,
-      `Started from the "${preset.name}" preset because your prompt says ${q(presetWords)}${starts ? `; it begins with ${starts}` : '; it changes no settings by itself'}, and the points below say where I changed or confirmed that for your image and wording.`,
+      `Started from the "${preset.name}" preset because your prompt says ${q(presetWords)}${starts ? `. It turns on ${starts}; the points below adjust that for your image and wording.` : '.'}`,
     )
   } else if (hasPrompt) {
     say(10, 'No preset matched your words, so I started from the app defaults and changed only what your prompt and the image call for.')
@@ -817,7 +816,12 @@ export function interpretLook(ctx: LookContext): LookPlan {
       )
     } else if (wasOn) {
       s.removeBackground = false
-      say(8, 'Turned Remove background (flood fill from edges) off even though the preset enables it, because your image has no solid-color border to flood from and it could eat into the artwork.')
+      say(
+        8,
+        traits.hasAlpha
+          ? 'Turned Remove background (flood fill from edges) off even though the preset enables it, because your image already has a transparent background and the flood fill could eat into light parts of the artwork.'
+          : 'Turned Remove background (flood fill from edges) off even though the preset enables it, because your image has no solid-color border to flood from and it could eat into the artwork.',
+      )
     }
   }
 
@@ -861,11 +865,11 @@ export function interpretLook(ctx: LookContext): LookPlan {
       s.halftone = { ...s.halftone, enabled: true, mode, lpi, ink: mode === 'luminance' ? 'auto' : DEFAULT_SETTINGS.halftone.ink, lumLo: 0, lumHi: 1 }
       const dotWords = lpiCoarse ? 'big dots' : lpiFine ? 'fine dots' : 'standard dots'
       if (mode === 'luminance') {
-        say(8, `Turned on Halftone with Dots from set to Tones (photo) at ${lpi} LPI, with ink on Auto, because you said ${q([on?.text ?? 'halftone'])} and your image is an opaque photo; one ink color (white on dark shirts, black on light ones) is what keeps photos clean on film.`)
+        say(8, `Turned on Halftone with Dots from set to Tones / photo at ${lpi} LPI, with ink on Auto, because you said ${q([on?.text ?? 'halftone'])} and your image is an opaque photo; one ink color (white on dark shirts, black on light ones) is what keeps photos clean on film.`)
       } else {
         say(8, `Turned on Halftone with Dots from set to Soft edges and shadows at ${lpi} LPI (${dotWords}) because you said ${q([on?.text ?? 'halftone'])}; this art ${traits.hasAlpha ? 'has transparency, so Tones mode would drop ink' : 'is not a photo'}.`)
         if (soft <= 0.005 && !fadeOn) {
-          tip(8, `Few dots showing? Your art has almost no soft edges, so Soft edges mode has little to turn into dots. For a photo-style screen, set Dots from to Tones (photo) under Halftone in step 5 (opaque art only).`)
+          tip(8, `Few dots showing? Your art has almost no soft edges, so Soft edges mode has little to turn into dots. For a photo-style screen, set Dots from to Tones / photo under Halftone in step 5 (opaque art only).`)
         }
       }
     } else if (soft > 0.005) {
@@ -990,7 +994,7 @@ export function interpretLook(ctx: LookContext): LookPlan {
   if (needsUpscale) {
     tip(
       6,
-      `Your art is ${traits.width} px wide for a ${printIn} in print (about ${effDpi} DPI). The upscale in step 6 takes it to 300 DPI, so zoom to 100% after upscaling and check edges and small text before export.`,
+      `Your art is ${traits.width} px wide and the print is ${printIn} in wide (about ${effDpi} DPI). The upscale in step 6 takes it to 300 DPI, so zoom to 100% after upscaling and check edges and small text before export.`,
     )
   }
 
@@ -1022,9 +1026,9 @@ export function interpretLook(ctx: LookContext): LookPlan {
     tip(5, `Want the ${garmentClass === 'dark' ? 'dark' : 'light'} areas to become the shirt? Turn on Knock out garment color in step 5 (Tolerance is ${s.tolerance}).`)
   }
   if (s.outline.enabled) {
-    tip(5, `Outline too heavy or too light? Change Keyline outline px in Color work (step 5, now ${s.outline.px}).`)
+    tip(5, `Outline too heavy or too light? Change Keyline width in Color work (step 5, now ${s.outline.px} px).`)
     if (s.outline.color === '#000000' && garmentClass === 'dark') {
-      tip(6, `A black keyline disappears on ${garmentName}. Set the Keyline outline color to white in Color work (step 5) if you want it visible.`)
+      tip(6, `A black keyline disappears on ${garmentName}. Set Keyline color to White in Color work (step 5) if you want it visible.`)
     }
   }
   if (s.desaturate > 0 && s.desaturate < 1) {
