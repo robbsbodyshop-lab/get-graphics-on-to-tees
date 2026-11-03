@@ -199,29 +199,35 @@ export default function App(): ReactElement {
   const applyLook = useCallback((): string | null => {
     if (!source) return 'Upload your artwork first.'
     if (!source.traits) return `Could not read the image: ${source.traitsError ?? 'unknown error'}`
+    // Re-applying a look the user hasn't adjusted starts from the state before that look, so a new
+    // prompt doesn't inherit the old prompt's placement, width or shirt color, and Undo still goes
+    // back to the user's own settings. After manual adjustments, the current state is the base.
+    const unadjusted = lookApplied !== null && stateKey === lookApplied.afterKey
+    const before: Snapshot = unadjusted ? lookApplied.before : { settings, presetId, upscaler, sel, finishOverride }
+    const baseSel = before.sel
+    const rb = resolveSelection(baseSel, custom)
     let plan: LookPlan
     try {
       const ctx: LookContext = {
         prompt: look,
         traits: source.traits,
         garment: {
-          colorName: r.colorName,
-          colorHex: r.colorHex,
-          type: r.garment.type,
-          sizeClass: r.garment.sizeClass,
-          availableColors: r.garment.colors.map((n) => ({ name: n, hex: colorByName(n).hex })),
+          colorName: rb.colorName,
+          colorHex: rb.colorHex,
+          type: rb.garment.type,
+          sizeClass: rb.garment.sizeClass,
+          availableColors: rb.garment.colors.map((n) => ({ name: n, hex: colorByName(n).hex })),
         },
-        availablePlacementIds: r.placements.map((p) => p.id),
+        availablePlacementIds: rb.placements.map((p) => p.id),
       }
       plan = interpretLook(ctx)
     } catch (e) {
       return e instanceof Error ? e.message : String(e)
     }
-    const before: Snapshot = { settings, presetId, upscaler, sel, finishOverride }
-    let next: Selection = { ...sel }
-    let widthIn = sel.widthIn
-    if (plan.garmentColor && r.garment.colors.includes(plan.garmentColor)) next.color = plan.garmentColor
-    if (plan.placementId && r.placements.some((x) => x.id === plan.placementId)) {
+    let next: Selection = { ...baseSel }
+    let widthIn = baseSel.widthIn
+    if (plan.garmentColor && rb.garment.colors.includes(plan.garmentColor)) next.color = plan.garmentColor
+    if (plan.placementId && rb.placements.some((x) => x.id === plan.placementId)) {
       next.placementId = plan.placementId
       next.oversize = !!plan.oversize
       const r1 = resolveSelection(next, custom)
@@ -246,7 +252,7 @@ export default function App(): ReactElement {
       afterKey: JSON.stringify([nextSettings, nextPreset, nextUpscaler, nextFinish, next.color, next.placementId, next.oversize, next.widthIn]),
     })
     return null
-  }, [source, look, r, custom, sel, settings, presetId, upscaler, finishOverride, vectorOk])
+  }, [source, look, r, custom, sel, settings, presetId, upscaler, finishOverride, vectorOk, lookApplied, stateKey])
 
   const undoLook = useCallback(() => {
     if (!lookApplied) return

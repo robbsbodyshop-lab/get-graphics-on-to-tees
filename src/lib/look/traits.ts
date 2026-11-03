@@ -9,6 +9,7 @@ import type { ImageTraits } from './types'
 const MAX_SIDE = 1200
 const BG_DELTA_E = 10
 const BORDER_SHARE = 0.9
+const FLAT_MAX_DISTINCT = 2000
 
 /** Per 5-bit-per-channel color: cached lightness and Lab of the bucket centre. */
 class ColorCache {
@@ -157,8 +158,15 @@ export function describeImage(img: RGBAImage): ImageTraits {
     }
   }
 
+  // A photo spreads its pixels over so many colors that few reach 0.5% each, which would look
+  // "flat" by the dominant-color count alone, so the photo test goes first and flat also needs a
+  // modest number of distinct colors (anti-aliased logos have a few hundred, gradients thousands).
   const kind: ImageTraits['kind'] =
-    dominant <= 8 ? 'flat' : !hasAlpha && !solidBackground && distinct > 3000 ? 'photo' : 'illustration'
+    !hasAlpha && !solidBackground && distinct > 3000
+      ? 'photo'
+      : dominant <= 8 && distinct <= FLAT_MAX_DISTINCT
+        ? 'flat'
+        : 'illustration'
 
   return {
     width,
