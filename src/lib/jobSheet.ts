@@ -9,6 +9,16 @@ export interface JobSheetSecondary {
   variant: VariantChoice | null
 }
 
+/** Numbers read back from the exported file's real pixels. */
+export interface JobSheetExportCheck {
+  partial: number
+  clearPct: number
+  solidPct: number
+  hiddenColor: number
+  iccSrgb: boolean
+  garmentClosePct: number
+}
+
 export interface JobSheetInput {
   sourceName: string
   sourcePx: { w: number; h: number }
@@ -37,6 +47,8 @@ export interface JobSheetInput {
   secondary?: JobSheetSecondary
   /** Extra advice lines (for example washed-blank recommendations). */
   recommendations?: string[]
+  /** Present after an export. */
+  exportCheck?: JobSheetExportCheck
 }
 
 const money = (n: number) => `$${n.toFixed(2)}`
@@ -55,6 +67,15 @@ function variantLines(v: VariantChoice | null, w: number, h: number, priceDate: 
     lines.push('Print size matches a listed variant exactly: no designer note needed.')
   }
   return lines
+}
+
+function exportLines(c: JobSheetExportCheck): string[] {
+  return [
+    `Export check: ${c.clearPct.toFixed(1)}% clear, ${c.solidPct.toFixed(1)}% solid, ${c.partial} partly clear pixels`,
+    `Hidden color under transparency: ${c.hiddenColor}`,
+    `Color profile: ${c.iccSrgb ? 'sRGB ICC embedded' : 'no sRGB ICC profile found'}`,
+    `Ink close to shirt color: ${Math.round(c.garmentClosePct)}%`,
+  ]
 }
 
 /** Plain-text job sheet: headed sections, one fact per line. */
@@ -102,6 +123,7 @@ export function buildJobSheet(i: JobSheetInput): string {
     `Effective DPI: ${Math.round(i.effectiveDpi)} (${i.dpiLabel})`,
     `Upscaled with: ${i.upscaledWith}`,
     `Knocked out: ${i.knockedOut}`,
+    ...(i.exportCheck ? exportLines(i.exportCheck) : []),
     ...(i.warnings.length ? i.warnings.map((w) => `Warning: ${w}`) : ['Warnings: none']),
   ])
   section('Pressing defaults', [

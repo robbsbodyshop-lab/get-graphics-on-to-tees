@@ -4,11 +4,13 @@ import { buildJobSheet } from '../lib/jobSheet'
 import { knockoutSummary } from '../lib/pipeline'
 import { AHTV_PRICE_DATE } from '../lib/sizing'
 import { useStudio } from './studio'
+import { jobSheetExportCheck, useIccName } from './exportInfo'
 
 export function JobSheetPanel(): ReactElement | null {
   const { source, look, preset, r, sz, preview, exp, settings } = useStudio()
   const [copied, setCopied] = useState<'idle' | 'ok' | 'fail'>('idle')
   const first = exp.results[0]
+  const icc = useIccName(first?.pngUrl)
 
   const text = useMemo(() => {
     if (!source) return ''
@@ -45,6 +47,7 @@ export function JobSheetPanel(): ReactElement | null {
       upscaledWith: first?.upscaledWith ?? 'not exported yet',
       warnings,
       quantity: sz.quantity,
+      exportCheck: jobSheetExportCheck(first, icc),
       secondary: sz.secondary
         ? { ...sz.secondary, widthIn: secondary?.widthIn ?? sz.secondary.widthIn, heightIn: secondary?.heightIn ?? sz.secondary.heightIn }
         : undefined,
@@ -53,7 +56,7 @@ export function JobSheetPanel(): ReactElement | null {
           ? ['Comfort Colors 1717 and 1745, SmartBlanks MT600 and MH700, DigiPrint acid wash, LBL 2102.']
           : preset?.recommendGarments,
     })
-  }, [source, look, preset, r, sz, preview.report, first, exp.results, settings])
+  }, [source, look, preset, r, sz, preview.report, first, exp.results, settings, icc])
 
   const copy = async () => {
     try {

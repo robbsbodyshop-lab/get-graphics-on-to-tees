@@ -11,6 +11,8 @@ export function Eyedropper(): ReactElement | null {
   const [view, setView] = useState<'before' | 'after'>('before')
   const [cur, setCur] = useState({ x: 0.5, y: 0.5 })
   const [msg, setMsg] = useState<string | null>(null)
+  const [picking, setPicking] = useState(false)
+  const [justPicked, setJustPicked] = useState<string | null>(null)
   const image = source?.image
 
   useEffect(() => {
@@ -46,10 +48,19 @@ export function Eyedropper(): ReactElement | null {
     update((s) => {
       s.knockoutPicks = [...s.knockoutPicks, p.hex]
     })
+    setJustPicked(p.hex)
+    setPicking(false)
+  }
+
+  const undoLast = () => {
+    update((s) => {
+      s.knockoutPicks = s.knockoutPicks.slice(0, -1)
+    })
+    setJustPicked(null)
   }
 
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (view !== 'before') return
+    if (view !== 'before' || !picking) return
     const rect = e.currentTarget.getBoundingClientRect()
     const fx = (e.clientX - rect.left) / rect.width
     const fy = (e.clientY - rect.top) / rect.height
@@ -58,7 +69,7 @@ export function Eyedropper(): ReactElement | null {
   }
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (view !== 'before') return
+    if (view !== 'before' || !picking) return
     const step = (e.shiftKey ? 10 : 1) / Math.max(image.width, image.height) * 8
     let { x, y } = cur
     if (e.key === 'ArrowLeft') x -= step
@@ -86,11 +97,11 @@ export function Eyedropper(): ReactElement | null {
         <span className="muted small">{view === 'before' ? 'Source artwork' : 'Processed preview on the garment color'}</span>
       </div>
       <div
-        className={`eye__frame ${view === 'before' ? 'checker' : ''}`}
+        className={`eye__frame ${view === 'before' ? 'checker' : ''} ${view === 'before' && picking ? 'eye__frame--pick' : ''}`}
         style={view === 'after' ? { background: r.colorHex } : undefined}
         tabIndex={view === 'before' ? 0 : -1}
         role="group"
-        aria-label="Source image eyedropper. Use the arrow keys to move the crosshair and Enter to pick a color to remove. Shift makes bigger steps."
+        aria-label="Source image eyedropper. After turning on Pick a color to remove, use the arrow keys to move the crosshair and Enter to pick a color. Shift makes bigger steps."
         onClick={onClick}
         onKeyDown={onKey}
       >
@@ -101,17 +112,40 @@ export function Eyedropper(): ReactElement | null {
           ) : (
             <p className="eye__empty">No preview yet.</p>
           ))}
-        {view === 'before' && (
+        {view === 'before' && picking && (
           <span className="eye__cross" style={{ left: `${cur.x * 100}%`, top: `${cur.y * 100}%` }} aria-hidden="true" />
         )}
       </div>
       {view === 'before' ? (
-        <p className="small">
-          <Swatch hex={under.hex} /> Crosshair at {fmtInt(under.x)}, {fmtInt(under.y)}: <code>{under.hex}</code>
-          {under.a === 0 ? ' (transparent)' : ''}. Click, or press Enter, to remove this color.
-        </p>
+        <>
+          <button
+            type="button"
+            className="btn btn--small"
+            aria-pressed={picking}
+            onClick={() => {
+              setPicking((v) => !v)
+              setMsg(null)
+            }}
+          >
+            Pick a color to remove
+          </button>
+          {picking ? (
+            <p className="small">
+              <Swatch hex={under.hex} /> Crosshair at {fmtInt(under.x)}, {fmtInt(under.y)}: <code>{under.hex}</code>
+              {under.a === 0 ? ' (transparent)' : ''}. Click the image, or press Enter, to remove this color.
+            </p>
+          ) : (
+            <p className="small muted">Turn on Pick a color to remove, then click the color.</p>
+          )}
+        </>
       ) : (
         <p className="small muted">Switch to Before to pick colors.</p>
+      )}
+      {justPicked && (
+        <p className="small eye__confirm" role="status">
+          <Swatch hex={justPicked} /> Picked <code>{justPicked}</code> to remove.{' '}
+          <button type="button" className="btn btn--small" onClick={undoLast}>Undo</button>
+        </p>
       )}
       {msg && <Status level="warn">{msg}</Status>}
 
@@ -138,11 +172,7 @@ export function Eyedropper(): ReactElement | null {
           type="button"
           className="btn btn--small"
           disabled={settings.knockoutPicks.length === 0}
-          onClick={() =>
-            update((s) => {
-              s.knockoutPicks = s.knockoutPicks.slice(0, -1)
-            })
-          }
+          onClick={undoLast}
         >
           Undo last pick
         </button>

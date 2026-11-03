@@ -9,15 +9,21 @@ async function exportAndRead(page: Page) {
   const download = await downloadPromise
   expect(download.suggestedFilename()).toMatch(/^design_[\d.]+x[\d.]+in_300dpi\.png$/)
   const bytes = new Uint8Array(await readFile((await download.path())!))
+  await download.saveAs(`test-results/${download.suggestedFilename()}`)
   const info = readPngInfo(bytes)!
   const image = await decodePng(bytes)
   let semi = 0
   let opaque = 0
+  let hidden = 0
   for (let i = 3; i < image.data.length; i += 4) {
     const a = image.data[i]
     if (a > 0 && a < 255) semi++
     if (a === 255) opaque++
+    if (a === 0 && (image.data[i - 3] | image.data[i - 2] | image.data[i - 1]) !== 0) hidden++
   }
+  // No color hiding under transparent pixels, and an embedded sRGB ICC profile.
+  expect(hidden).toBe(0)
+  expect(info.iccProfileName).toBe('sRGB')
   await expect(page.getByTestId('export-status')).toContainText('Exported')
   return { name: download.suggestedFilename(), info, image, semi, opaque }
 }

@@ -64,4 +64,22 @@ describe('buildJobSheet', () => {
     expect(t).toContain("3.75 in toward the wearer's left")
     expect(t).toContain('use a gang sheet')
   })
+
+  it('adds export check lines only when an export check is given', () => {
+    expect(buildJobSheet(base)).not.toContain('Export check:')
+    const t = buildJobSheet({
+      ...base,
+      exportCheck: { partial: 0, clearPct: 81.1, solidPct: 18.9, hiddenColor: 0, iccSrgb: true, garmentClosePct: 12 },
+    })
+    expect(t).toContain('Export check: 81.1% clear, 18.9% solid, 0 partly clear pixels')
+    expect(t).toContain('Hidden color under transparency: 0')
+    expect(t).toContain('Color profile: sRGB ICC embedded')
+    expect(t).toContain('Ink close to shirt color: 12%')
+    const bad = buildJobSheet({
+      ...base,
+      exportCheck: { partial: 5, clearPct: 80, solidPct: 20, hiddenColor: 3, iccSrgb: false, garmentClosePct: 30 },
+    })
+    expect(bad).toContain('5 partly clear pixels')
+    expect(bad).toContain('Color profile: no sRGB ICC profile found')
+  })
 })
