@@ -1,0 +1,210 @@
+{
+  "source": "Aesthetic presets from the user's brief, grounded in what Primitive, Creature, Fucking Awesome / Hockey, Urban Outfitters men's graphic tees and GQ's summer-2026 graphic-tee picks sell. Settings are defaults only; every toggle stays editable.",
+  "verified": "2026-11-03",
+  "unsupportedNote": "Puff, glow-in-the-dark, foil, flock, rhinestone and UV color-change prints can't be reproduced with DTF. Ask a screen printer or a specialty vinyl shop.",
+  "presets": [
+    {
+      "id": "skate-flat",
+      "name": "Skate flat-color",
+      "inspiredBy": "Primitive and Creature logo tees",
+      "description": "Posterize to a few flat colors, hard edges, a 3 px outline, no gradients, garment color knocked out.",
+      "keywords": ["skate", "flat", "logo", "primitive", "creature", "simple", "sticker", "cartoon", "board"],
+      "settings": {
+        "posterize": { "enabled": true, "colors": 5 },
+        "outline": { "enabled": true, "px": 3, "color": "#000000" },
+        "knockoutGarment": true,
+        "removeBackground": true,
+        "snapBlackWhite": true
+      }
+    },
+    {
+      "id": "horror-metal",
+      "name": "Horror / metal",
+      "inspiredBy": "Creature x Cannibal Corpse, Hellraiser, Bonehead, Doom Skull",
+      "description": "Black-dominant art on a black tee: maximum contrast, every near-black knocked out so the shirt becomes the black, whites plus one accent kept, light cracked distress.",
+      "keywords": ["horror", "metal", "skull", "doom", "hellraiser", "bonehead", "cannibal", "gore", "death", "demon", "black metal", "zombie", "occult", "evil"],
+      "garmentColor": "Black",
+      "settings": {
+        "contrast": 0.35,
+        "posterize": { "enabled": true, "colors": 3 },
+        "knockoutGarment": true,
+        "tolerance": 16,
+        "removeBackground": true,
+        "distress": { "enabled": true, "mask": "cracked", "intensity": 0.2 },
+        "snapBlackWhite": true
+      }
+    },
+    {
+      "id": "distressed-relic",
+      "name": "Distressed relic",
+      "inspiredBy": "Creature \"Relic\" logos, Urban Outfitters vintage reprints",
+      "description": "Coarse scratch distress at about 40%, slightly desaturated, aggressive speck removal so no loose bits wash off.",
+      "keywords": ["distressed", "relic", "worn", "grunge", "beat up", "old", "faded", "aged", "cracked"],
+      "settings": {
+        "distress": { "enabled": true, "mask": "scratched", "intensity": 0.4 },
+        "desaturate": 0.15,
+        "knockoutGarment": true,
+        "speckMinIn": 0.05
+      }
+    },
+    {
+      "id": "vintage-tour",
+      "name": "Vintage band / tour tee",
+      "inspiredBy": "UO Metallica and Soundgarden tour reprints, J.Crew vintage wash",
+      "description": "Photo halftoned at 50 LPI, cracked distress, faded palette. Looks best on washed or mineral blanks.",
+      "keywords": ["vintage", "band", "tour", "concert", "reprint", "90s", "80s", "retro", "rock", "rap tee", "bootleg"],
+      "mockupFinish": "washed",
+      "recommendGarments": ["Comfort Colors 1717", "Comfort Colors 1745", "SmartBlanks MT600", "SmartBlanks MH700", "DigiPrint 1300 acid wash", "LBL 2102"],
+      "settings": {
+        "desaturate": 0.25,
+        "halftone": { "enabled": true, "mode": "luminance", "lpi": 50, "ink": "original", "lumLo": 0, "lumHi": 1, "darkInk": true },
+        "distress": { "enabled": true, "mask": "cracked", "intensity": 0.3 },
+        "knockoutGarment": true
+      }
+    },
+    {
+      "id": "stamp-outline",
+      "name": "Stamp / outline logo",
+      "inspiredBy": "FA stamp, drip and outline logos; Creature Logo Outline",
+      "description": "Single color, threshold to 1-bit, clean edges, small placement.",
+      "keywords": ["stamp", "outline", "drip", "one color", "single color", "monogram", "small logo", "wordmark"],
+      "placement": "left-chest",
+      "upscale": "vectorize",
+      "settings": {
+        "lineArt": { "enabled": true, "threshold": 0.5, "ink": "auto" },
+        "removeBackground": true,
+        "knockoutGarment": true
+      }
+    },
+    {
+      "id": "halftone-photo",
+      "name": "Halftone photo / screen-tone",
+      "inspiredBy": "FA photo and illustration tees",
+      "description": "Turns a photo into a one-ink halftone at 55 LPI (black ink on light garments, white ink on dark ones). No soft alpha.",
+      "keywords": ["photo", "photograph", "halftone", "screen tone", "picture", "portrait", "xerox photo"],
+      "settings": {
+        "contrast": 0.2,
+        "halftone": { "enabled": true, "mode": "luminance", "lpi": 55, "ink": "auto", "lumLo": 0, "lumHi": 1, "darkInk": true }
+      }
+    },
+    {
+      "id": "hand-drawn",
+      "name": "Hand-drawn ink",
+      "inspiredBy": "FA \"Dillustrated\", GQ's playful illustration tees",
+      "description": "Threshold to line art keeping the line weight, 1 to 2 colors, paper white knocked out.",
+      "keywords": ["hand drawn", "drawing", "sketch", "ink", "doodle", "illustration", "line art", "pen", "dill"],
+      "settings": {
+        "lineArt": { "enabled": true, "threshold": 0.55, "ink": "original" },
+        "posterize": { "enabled": true, "colors": 2 },
+        "removeBackground": true,
+        "knockoutPicks": ["#ffffff"]
+      }
+    },
+    {
+      "id": "collage-zine",
+      "name": "Collage / zine / xerox",
+      "inspiredBy": "FA Dill Collage",
+      "description": "High-contrast cutouts with a white keyline around each piece and light speckle. The keyline is 4 px (about 0.013 in) at 300 DPI because a true 1 px line won't hold on film.",
+      "keywords": ["collage", "zine", "xerox", "cut out", "cutout", "photocopy", "punk", "flyer", "mixed"],
+      "settings": {
+        "contrast": 0.4,
+        "posterize": { "enabled": true, "colors": 4 },
+        "outline": { "enabled": true, "px": 4, "color": "#ffffff" },
+        "distress": { "enabled": true, "mask": "speckle", "intensity": 0.15 },
+        "removeBackground": true
+      }
+    },
+    {
+      "id": "blackletter",
+      "name": "Old English / blackletter type",
+      "inspiredBy": "Primitive Realm and Arena boxy tees",
+      "description": "Crisp type edges, a keyline, flat fill, and strokes thickened to meet the 0.04 in minimum.",
+      "keywords": ["old english", "blackletter", "gothic", "script", "type", "lettering", "text", "fraktur", "chicano"],
+      "settings": {
+        "contrast": 0.2,
+        "posterize": { "enabled": true, "colors": 3 },
+        "outline": { "enabled": true, "px": 4, "color": "#000000" },
+        "thicken": true,
+        "removeBackground": true,
+        "knockoutGarment": true
+      }
+    },
+    {
+      "id": "collegiate",
+      "name": "Collegiate / preppy club",
+      "inspiredBy": "GQ's preppy picks, UO college colorblock hoodies",
+      "description": "Arched block type in 2 to 3 flat colors with a light vintage-wash distress. Best on cream, heather or sand.",
+      "keywords": ["college", "collegiate", "varsity", "preppy", "club", "golf", "sailing", "yacht", "university", "athletic dept"],
+      "recommendColors": ["Cream", "Sport Grey", "Sand", "Oatmeal Heather"],
+      "settings": {
+        "posterize": { "enabled": true, "colors": 3 },
+        "distress": { "enabled": true, "mask": "sandblasted", "intensity": 0.2 },
+        "removeBackground": true,
+        "knockoutGarment": true
+      }
+    },
+    {
+      "id": "sports-throwback",
+      "name": "Sports throwback",
+      "inspiredBy": "Mitchell & Ness cream champions tee, UO NFL vintage",
+      "description": "Retro palette limited to 4 colors with cracked ink, on a cream or heather base.",
+      "keywords": ["sports", "throwback", "champions", "team", "football", "basketball", "baseball", "jersey", "nfl", "nba", "retro sport"],
+      "recommendColors": ["Cream", "Sport Grey", "Athletic Heather", "Natural"],
+      "settings": {
+        "posterize": { "enabled": true, "colors": 4 },
+        "desaturate": 0.1,
+        "distress": { "enabled": true, "mask": "cracked", "intensity": 0.25 },
+        "removeBackground": true,
+        "knockoutGarment": true
+      }
+    },
+    {
+      "id": "playful",
+      "name": "Playful / tongue-in-cheek",
+      "inspiredBy": "Metalwood \"Excuses\", Cactus Store, Only NY",
+      "description": "Simple color illustration with clean edges and no distress. Best on light garments.",
+      "keywords": ["playful", "funny", "joke", "cute", "tongue in cheek", "silly", "humor", "quote", "excuses", "cactus"],
+      "recommendColors": ["White", "Natural", "Cream", "Butter"],
+      "settings": {
+        "posterize": { "enabled": true, "colors": 6 },
+        "removeBackground": true,
+        "snapBlackWhite": true
+      }
+    },
+    {
+      "id": "small-front-big-back",
+      "name": "Small front / big back",
+      "inspiredBy": "Primitive, Creature and FA hoodies",
+      "description": "Exports two files from the same art: a 3.5 in left chest and a 12 in full back.",
+      "keywords": ["front and back", "small front", "big back", "back print", "two placements", "hoodie back"],
+      "placement": "full-back",
+      "secondary": { "placement": "left-chest", "widthIn": 3.5 },
+      "settings": {
+        "knockoutGarment": true,
+        "removeBackground": true
+      }
+    },
+    {
+      "id": "fade-into-garment",
+      "name": "Fade into garment",
+      "inspiredBy": "Graphic tees where the art dissolves into the shirt",
+      "description": "One edge fades into the shirt through a halftone alpha gradient, never soft alpha.",
+      "keywords": ["fade", "fading", "gradient", "dissolve", "blend", "melt", "smoke"],
+      "settings": {
+        "fadeEdge": { "enabled": true, "edge": "bottom", "fraction": 0.35 },
+        "halftone": { "enabled": true, "mode": "alpha", "lpi": 55 },
+        "knockoutGarment": true
+      }
+    },
+    {
+      "id": "washed-pairing",
+      "name": "Washed / mineral garment pairing",
+      "inspiredBy": "Enzyme- and mineral-washed blanks",
+      "description": "No change to the art. The mockup shows a mottled finish and the job sheet recommends washed blanks from the catalog.",
+      "keywords": ["washed", "mineral", "acid wash", "garment dyed", "enzyme", "comfort colors", "pigment dyed", "sun faded"],
+      "mockupFinish": "mineral",
+      "recommendGarments": ["Comfort Colors 1717", "Comfort Colors 1745", "SmartBlanks MT600", "SmartBlanks MH700", "DigiPrint 1300 acid wash", "LBL 2102"],
+      "settings": {}
+    }
+  ]
+}
