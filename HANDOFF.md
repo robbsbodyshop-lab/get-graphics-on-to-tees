@@ -3,7 +3,7 @@
 Use this if the cloud session stops (credits, timeout, container reclaimed). Everything needed to
 continue is in this folder; the original brief is `docs/BRIEF.md`.
 
-_Last updated: 2026-11-03, build in progress (slice 3 of 6)._
+_Last updated: 2026-11-03, build in progress: libraries, worker, upscaler done; UI being built._
 
 ## 1. Get the code onto your machine
 
@@ -60,17 +60,18 @@ and all three files in samples/ export cleanly. Update HANDOFF.md as you finish 
 | Sizing math: variant pick, width scaling, collar offset, DPI flag | done, 22 tests | `src/lib/sizing.ts` |
 | Image ops: analyze, knockout (Delta E + flood), threshold, choke, thicken, specks, strokes, trim/crop/fit | done, 24 tests | `src/lib/image/{analyze,knockout,alpha,strokes,geometry}.ts` |
 | PNG encode/decode with pHYs 300 DPI + sRGB, Lanczos resize, color bleed, gang sheet packer + renderer, sample inputs | done, 21 tests | `src/lib/{png,resize,pack}.ts`, `samples/`, `scripts/make-samples.py` |
-| Halftone (alpha, luminance, edge fade), grunge masks + distress, posterize/desaturate/contrast/outline/color warnings | sub-agent finishing | `src/lib/image/{halftone,masks,colorwork}.ts` |
-| Garment mockup SVG component | sub-agent finishing | `src/components/GarmentMockup.tsx` |
+| Halftone (alpha, luminance, edge fade), grunge masks + distress, posterize/desaturate/contrast/outline/color warnings | done, 58 tests in image/ | `src/lib/image/{halftone,masks,colorwork}.ts` |
+| Garment mockup SVG component | done (screenshot-checked) | `src/components/GarmentMockup.tsx` |
 | Settings defaults | done | `src/lib/settings.ts` |
-| Presets (15) + keyword suggester | next | `src/data/presets.json`, `src/lib/presets.ts` |
-| Pipeline + Web Worker (progress, cancel) | todo | `src/lib/pipeline.ts`, `src/workers/` |
-| Upscaler: Real-ESRGAN general-x4v3 via onnxruntime-web, Lanczos fallback | todo | `public/models/`, `src/workers/` |
-| Vectorize instead (imagetracerjs) for <= 8 colors | todo | |
-| UI: one scrolling page, steps 1-7, job sheet, gang sheet | todo | `src/App.tsx`, `src/components/` |
-| Service worker for offline | todo | `public/sw.js` |
-| Playwright smoke test | todo | `e2e/smoke.spec.ts` |
-| README | todo | `README.md` |
+| Presets (15) + keyword suggester | done, 5 tests | `src/data/presets.json`, `src/lib/presets.ts` |
+| Pipeline (fixed order, report) | done, 8 tests incl. samples/shadow.png | `src/lib/pipeline.ts` |
+| Worker (preview + export lanes, cancel = terminate) | done | `src/workers/pipeline.worker.ts`, `src/lib/workerClient.ts` |
+| Upscaler: Real-ESRGAN general-x4v3 via onnxruntime-web, tiles, Lanczos fallback | done, verified in headless Chromium (WASM) and weights match the official .pth bit for bit | `src/lib/upscale/esrgan.ts`, `public/models/` |
+| Vectorize instead (imagetracerjs, OffscreenCanvas raster) | done, not yet exercised in a browser | `src/lib/upscale/vectorize.ts` |
+| UI: one scrolling page, steps 1-7, job sheet, gang sheet | sub-agent building | `src/App.tsx`, `src/components/`, `src/lib/{decode,jobSheet}.ts`, `src/workers/gang.worker.ts` |
+| Service worker (offline + COOP/COEP) and precache manifest | written, untested | `public/sw.js`, `vite.config.ts` |
+| Playwright smoke test + 3 sample exports | written, not yet run (needs the UI) | `e2e/smoke.spec.ts`, `playwright.config.ts` |
+| README, Vercel config, GitHub Pages workflow | done | `README.md`, `vercel.json`, `.github/workflows/deploy-pages.yml` |
 
 ## 4. Decisions already made (with the reason)
 
@@ -125,21 +126,14 @@ and all three files in samples/ export cleanly. Update HANDOFF.md as you finish 
 
 ## 6. Remaining work, in order
 
-1. `src/data/presets.json` (15 presets from the brief, each a `SettingsPatch` + placement/garment
-   hints + keywords) and `src/lib/presets.ts` (`suggestPreset(text)`), plus the one-line note that puff,
-   glow, foil, flock, rhinestone and UV color-change can't be done with DTF.
-2. `src/lib/pipeline.ts`: the fixed order above as one function with progress callbacks and a
-   report (pixels removed, specks, thin strokes, solid coverage, color warnings). Unit-test it on the
-   three samples (each must end with only 0/255 alpha).
-3. Worker (`src/workers/pipeline.worker.ts`): preview runs (fast, Lanczos) and export runs (AI upscale),
-   progress + cancel (terminate the worker).
-4. Upscaler in the worker with onnxruntime-web, tiles, cancel, Lanczos fallback; warn when > 2x.
+1-4. Done (presets, pipeline, worker, upscaler).
 5. UI (one scrolling page): upload stats + PNG DPI; look text + preset dropdown; store -> garment ->
    color -> size (+ custom garment); placement, width slider/inches, mockup + ruler + 6 ft view + DPI
    flag; knockout (eyedropper stack, undo, tolerance, before/after, removed count), distress, halftone,
    fade, threshold, choke, specks, thicken; upscale; export PNG, job sheet (copy + print), gang sheet.
    Keyboard operable, every input labelled, status = icon + text.
-6. `public/sw.js` cache-first service worker; warm-cache the model and ORT wasm after first load.
-7. `e2e/smoke.spec.ts`: upload a sample PNG, black Gildan 5000 L, full front, Horror / metal, export,
+6. Done: `public/sw.js` (test it with `npm run build && npx vite preview`, load twice, go offline).
+7. Written: `e2e/smoke.spec.ts`: upload a sample PNG, black Gildan 5000 L, full front, Horror / metal, export,
    assert 3300 px wide and only 0/255 alpha.
-8. README (what, run, deploy to GitHub Pages / Vercel, data files, how to update prices).
+8. Done: README. Refresh it once the UI exists.
+9. `dev/esrgan-check.html` is a dev-only harness (open it on the dev server) that runs the AI upscaler through the worker and logs timings.
