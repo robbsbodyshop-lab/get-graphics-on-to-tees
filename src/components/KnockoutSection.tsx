@@ -93,13 +93,7 @@ export function KnockoutSection(): ReactElement {
                 <Select
                   label="Ink"
                   value={s.halftone.ink}
-                  onChange={(v) =>
-                    update((x) => {
-                      x.halftone.ink = v
-                      if (v === '#000000') x.halftone.darkInk = true
-                      if (v === '#ffffff') x.halftone.darkInk = false
-                    })
-                  }
+                  onChange={(v) => update((x) => void (x.halftone.ink = v))}
                 >
                   {INKS.map(([v, l]) => (
                     <option key={v} value={v}>{l}</option>

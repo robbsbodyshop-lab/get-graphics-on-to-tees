@@ -116,3 +116,102 @@ describe('pipeline', () => {
     expect(exportFileName(11, 9.3666)).toBe('design_11x9.37in_300dpi.png')
   })
 })
+
+describe('pipeline fixes from the session playbook', () => {
+  /** Light-gray art with a red accent and soft edges, on a transparent background whose hidden RGB is white. */
+  function playbookArt(): RGBAImage {
+    const img = createImage(240, 240)
+    fillRect(img, 0, 0, 240, 240, [255, 255, 255, 0]) // transparent, but white underneath
+    fillRect(img, 30, 30, 180, 180, [205, 205, 205, 255]) // light gray panel
+    fillRect(img, 60, 60, 120, 60, [160, 160, 160, 255]) // mid gray
+    fillRect(img, 100, 140, 40, 30, [200, 30, 30, 255]) // red hat
+    fillRect(img, 20, 20, 200, 10, [205, 205, 205, 110]) // soft fringe
+    fillRect(img, 70, 175, 60, 25, [8, 8, 8, 255]) // dark panel (the shirt's black)
+    return img
+  }
+
+  it('clears hidden color under transparent pixels and keeps the red accent', async () => {
+    const s = mergeSettings(DEFAULT_SETTINGS, { knockoutGarment: true, halftone: { enabled: true, mode: 'alpha' } })
+    const { image, report } = await runPipeline({ source: playbookArt(), settings: s, garmentHex: '#141414', printWidthIn: 2, strokeCheck: false })
+    expect(report.check.partial).toBe(0)
+    expect(report.check.hiddenColor).toBe(0)
+    expect(report.hiddenColorCleared).toBeGreaterThan(0)
+    for (let i = 0; i < image.data.length; i += 4) {
+      if (image.data[i + 3] === 0) expect(image.data[i] | image.data[i + 1] | image.data[i + 2]).toBe(0)
+    }
+    expect(report.check.saturated).toBeGreaterThan(0.01) // the red survived
+    expect(report.check.brightness.black).toBe(0) // the dark panel became shirt
+  })
+
+  it('luminance halftone keeps light art on a dark shirt (light tones get more ink there)', async () => {
+    const src = createImage(200, 200)
+    fillRect(src, 20, 20, 160, 160, [215, 215, 215, 255])
+    const s = mergeSettings(DEFAULT_SETTINGS, { halftone: { enabled: true, mode: 'luminance', ink: 'original' } })
+    const onBlack = await runPipeline({ source: src, settings: s, garmentHex: '#141414', printWidthIn: 2, strokeCheck: false })
+    const onWhite = await runPipeline({ source: src, settings: s, garmentHex: '#ffffff', printWidthIn: 2, strokeCheck: false })
+    const ink = (img: RGBAImage) => {
+      let n = 0
+      for (let i = 3; i < img.data.length; i += 4) if (img.data[i] === 255) n++
+      return n
+    }
+    expect(ink(onBlack.image)).toBeGreaterThan(ink(onWhite.image) * 3)
+    expect(onBlack.report.messages.some((m) => m.includes('Tones halftone kept only'))).toBe(false)
+    expect(onWhite.report.messages.some((m) => m.includes('Tones halftone kept only'))).toBe(true)
+  })
+
+  it('removes dots smaller than 0.01 in, even inside a halftone', async () => {
+    const src = createImage(300, 60)
+    for (let x = 0; x < 300; x++) fillRect(src, x, 0, 1, 60, [255, 255, 255, Math.round((x / 299) * 255)])
+    const s = mergeSettings(DEFAULT_SETTINGS, { halftone: { enabled: true, mode: 'alpha' } })
+    const { image, report } = await runPipeline({ source: src, settings: s, garmentHex: '#141414', printWidthIn: 3, strokeCheck: false })
+    expect(report.specks.tinyDots).toBeGreaterThan(0)
+    // No opaque island smaller than 3 px across remains.
+    const { width: w, height: h, data } = image
+    const seen = new Uint8Array(w * h)
+    for (let p = 0; p < w * h; p++) {
+      if (seen[p] || data[p * 4 + 3] === 0) continue
+      let x0 = w, x1 = -1, y0 = h, y1 = -1
+      const stack = [p]
+      seen[p] = 1
+      while (stack.length) {
+        const q = stack.pop()!
+        const x = q % w, y = (q - x) / w
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y)
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx, ny = y + dy
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+          const r = ny * w + nx
+          if (!seen[r] && data[r * 4 + 3] > 0) { seen[r] = 1; stack.push(r) }
+        }
+      }
+      expect(Math.max(x1 - x0 + 1, y1 - y0 + 1)).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('warns when most of the ink is close to the shirt color', async () => {
+    const src = createImage(100, 100)
+    fillRect(src, 10, 10, 80, 80, [150, 150, 150, 255])
+    const { report } = await runPipeline({ source: src, settings: DEFAULT_SETTINGS, garmentHex: '#9a9a9a', printWidthIn: 2, strokeCheck: false })
+    expect(report.check.garmentClose).toBeGreaterThan(0.9)
+    expect(report.messages.some((m) => m.includes('washed out on this shirt'))).toBe(true)
+  })
+
+  it('warns when a garment knockout on a mid-tone shirt deletes most of the art', async () => {
+    const src = createImage(100, 100)
+    fillRect(src, 10, 10, 80, 80, [150, 150, 150, 255])
+    fillRect(src, 40, 40, 10, 10, [255, 255, 255, 255])
+    const s = mergeSettings(DEFAULT_SETTINGS, { knockoutGarment: true, tolerance: 12 })
+    const { report } = await runPipeline({ source: src, settings: s, garmentHex: '#969696', printWidthIn: 2, strokeCheck: false })
+    expect(report.messages.some((m) => m.includes('Knocking out the shirt color removed'))).toBe(true)
+  })
+})
+
+describe('posterize warnings', () => {
+  it('warns when posterize shifts smooth tones a lot', async () => {
+    const src = createImage(256, 40)
+    for (let x = 0; x < 256; x++) fillRect(src, x, 0, 1, 40, [x, Math.round(x * 0.7), 255 - x, 255])
+    const s = mergeSettings(DEFAULT_SETTINGS, { posterize: { enabled: true, colors: 2 } })
+    const { report } = await runPipeline({ source: src, settings: s, garmentHex: '#ffffff', printWidthIn: 2, strokeCheck: false })
+    expect(report.messages.some((m) => m.startsWith('Posterize changed'))).toBe(true)
+  })
+})

@@ -14,6 +14,15 @@ function mulberry32(seed: number): () => number {
 
 const MAX_SAMPLES = 20000
 const MAX_ITERS = 15
+const RESCUE_ITERS = 5
+const OUTLIER_DE = 20 // sample this far from every centre counts as an outlier
+const GROUP_DE = 15 // greedy outlier grouping radius
+const MERGE_DE = 2 // centres closer than this are merged
+const OUTLIER_FRAC = 0.002 // a rescued group must be >= 0.2% of the sample
+const ACCENT_FRAC = 0.001 // ... or 0.1% when it is a saturated accent
+const ACCENT_CHROMA = 25
+const MIN_GROUP_PX = 8
+const MAX_GROUPS = 32
 
 /** Reduce to `colors` flat colours (k-means in Lab over pixels with alpha > 0). */
 export function posterize(img: RGBAImage, colors: number, seed = 1): { palette: RGB[] } {
@@ -91,52 +100,171 @@ export function posterize(img: RGBAImage, colors: number, seed = 1): { palette: 
     }
   }
 
-  const assign = new Int32Array(cnt)
+  const alive = new Uint8Array(k).fill(1)
+  const assign = new Int32Array(cnt).fill(-1)
+  const d1sq = new Float64Array(cnt) // squared distance to the nearest centre
+  const d2sq = new Float64Array(cnt) // squared distance to the second nearest (Infinity if none)
   const sumL = new Float64Array(k)
   const sumA = new Float64Array(k)
   const sumB = new Float64Array(k)
   const num = new Int32Array(k)
-  for (let it = 0; it < MAX_ITERS; it++) {
+
+  /** Assign every sample to its nearest live centre; returns how many changed. */
+  const assignAll = (): number => {
     let changed = 0
-    sumL.fill(0); sumA.fill(0); sumB.fill(0); num.fill(0)
     for (let i = 0; i < cnt; i++) {
-      let best = 0
+      let best = -1
       let bd = Infinity
+      let sd = Infinity
       for (let c = 0; c < k; c++) {
+        if (!alive[c]) continue
         const dl = sL[i] - cL[c]
         const da = sA[i] - cA[c]
         const db = sB[i] - cB[c]
         const d = dl * dl + da * da + db * db
-        if (d < bd) { bd = d; best = c }
+        if (d < bd) { sd = bd; bd = d; best = c }
+        else if (d < sd) sd = d
       }
-      if (assign[i] !== best || it === 0) changed++
+      if (assign[i] !== best) changed++
       assign[i] = best
-      sumL[best] += sL[i]; sumA[best] += sA[i]; sumB[best] += sB[i]; num[best]++
+      d1sq[i] = bd
+      d2sq[i] = sd
     }
-    for (let c = 0; c < k; c++) {
-      if (num[c] > 0) {
-        cL[c] = sumL[c] / num[c]
-        cA[c] = sumA[c] / num[c]
-        cB[c] = sumB[c] / num[c]
+    return changed
+  }
+  const tally = () => {
+    sumL.fill(0); sumA.fill(0); sumB.fill(0); num.fill(0)
+    for (let i = 0; i < cnt; i++) {
+      const c = assign[i]
+      sumL[c] += sL[i]; sumA[c] += sA[i]; sumB[c] += sB[i]; num[c]++
+    }
+  }
+  const lloyd = (maxIters: number) => {
+    for (let it = 0; it < maxIters; it++) {
+      const changed = assignAll()
+      tally()
+      for (let c = 0; c < k; c++) {
+        if (!alive[c]) continue
+        if (num[c] > 0) {
+          cL[c] = sumL[c] / num[c]
+          cA[c] = sumA[c] / num[c]
+          cB[c] = sumB[c] / num[c]
+        } else alive[c] = 0 // empty cluster: free the slot
+      }
+      if (changed === 0) break
+    }
+  }
+  /** Merge live centres closer than Delta E 2 (the smaller one is dropped). */
+  const mergeClose = (): boolean => {
+    let any = false
+    for (;;) {
+      assignAll()
+      tally()
+      let bi = -1
+      let bj = -1
+      for (let i = 0; i < k; i++) {
+        if (!alive[i]) continue
+        for (let j = i + 1; j < k; j++) {
+          if (!alive[j]) continue
+          const dl = cL[i] - cL[j]
+          const da = cA[i] - cA[j]
+          const db = cB[i] - cB[j]
+          if (dl * dl + da * da + db * db < MERGE_DE * MERGE_DE) { bi = i; bj = j; break }
+        }
+        if (bi >= 0) break
+      }
+      if (bi < 0) return any
+      const keep = num[bi] >= num[bj] ? bi : bj
+      const drop = keep === bi ? bj : bi
+      const tot = num[keep] + num[drop]
+      if (tot > 0) {
+        cL[keep] = (cL[keep] * num[keep] + cL[drop] * num[drop]) / tot
+        cA[keep] = (cA[keep] * num[keep] + cA[drop] * num[drop]) / tot
+        cB[keep] = (cB[keep] * num[keep] + cB[drop] * num[drop]) / tot
+      }
+      alive[drop] = 0
+      any = true
+    }
+  }
+  /** Largest qualifying group of samples far (Delta E > 20) from every centre. Needs fresh assignAll(). */
+  const bestOutlierGroup = (): Lab | null => {
+    const minAll = Math.max(MIN_GROUP_PX, Math.ceil(cnt * ACCENT_FRAC))
+    const minGroup = Math.max(MIN_GROUP_PX, Math.ceil(cnt * OUTLIER_FRAC))
+    const lim2 = OUTLIER_DE * OUTLIER_DE
+    const gl: number[] = []
+    const ga: number[] = []
+    const gb: number[] = []
+    const gn: number[] = []
+    let outliers = 0
+    for (let i = 0; i < cnt; i++) {
+      if (d1sq[i] <= lim2) continue
+      outliers++
+      let bg = -1
+      let bd = Infinity
+      for (let g = 0; g < gn.length; g++) {
+        const dl = sL[i] - gl[g] / gn[g]
+        const da = sA[i] - ga[g] / gn[g]
+        const db = sB[i] - gb[g] / gn[g]
+        const d = dl * dl + da * da + db * db
+        if (d < bd) { bd = d; bg = g }
+      }
+      if (bg < 0 || (bd > GROUP_DE * GROUP_DE && gn.length < MAX_GROUPS)) {
+        gl.push(sL[i]); ga.push(sA[i]); gb.push(sB[i]); gn.push(1)
+      } else {
+        gl[bg] += sL[i]; ga[bg] += sA[i]; gb[bg] += sB[i]; gn[bg]++
       }
     }
-    if (changed === 0) break
+    if (outliers < minAll) return null
+    let pick = -1
+    for (let g = 0; g < gn.length; g++) {
+      const n = gn[g]
+      const chroma = Math.hypot(ga[g], gb[g]) / n
+      const need = chroma > ACCENT_CHROMA ? minAll : minGroup
+      if (n >= need && (pick < 0 || n > gn[pick])) pick = g
+    }
+    if (pick < 0) return null
+    return { L: gl[pick] / gn[pick], a: ga[pick] / gn[pick], b: gb[pick] / gn[pick] }
   }
-  // Final assignment (after last centre update) to get member RGB means.
+  /** The live centre whose removal costs least, skipping ones whose members would become outliers. */
+  const leastUseful = (): number => {
+    const cost = new Float64Array(k)
+    const far = new Int32Array(k)
+    const lim2 = OUTLIER_DE * OUTLIER_DE
+    for (let i = 0; i < cnt; i++) {
+      const c = assign[i]
+      if (d2sq[i] === Infinity) return -1
+      cost[c] += d2sq[i] - d1sq[i]
+      if (d2sq[i] > lim2) far[c]++
+    }
+    const maxFar = Math.max(MIN_GROUP_PX, Math.ceil(cnt * OUTLIER_FRAC))
+    let best = -1
+    for (let c = 0; c < k; c++) {
+      if (!alive[c] || far[c] >= maxFar) continue
+      if (best < 0 || cost[c] < cost[best]) best = c
+    }
+    return best
+  }
+
+  lloyd(MAX_ITERS)
+  for (let r = 0; r < colors && k > 1; r++) {
+    mergeClose() // leaves a fresh assignment
+    const g = bestOutlierGroup()
+    if (!g) break
+    let slot = alive.indexOf(0)
+    if (slot < 0) slot = leastUseful()
+    if (slot < 0) break
+    cL[slot] = g.L; cA[slot] = g.a; cB[slot] = g.b
+    alive[slot] = 1
+    lloyd(RESCUE_ITERS)
+  }
+  mergeClose()
+  // Member RGB means for the final assignment (mergeClose left it fresh).
   const mR = new Float64Array(k)
   const mG = new Float64Array(k)
   const mB = new Float64Array(k)
   num.fill(0)
   for (let i = 0; i < cnt; i++) {
-    let best = 0
-    let bd = Infinity
-    for (let c = 0; c < k; c++) {
-      const dl = sL[i] - cL[c]
-      const da = sA[i] - cA[c]
-      const db = sB[i] - cB[c]
-      const d = dl * dl + da * da + db * db
-      if (d < bd) { bd = d; best = c }
-    }
+    const best = assign[i]
     mR[best] += sR[i]; mG[best] += sG[i]; mB[best] += sBl[i]; num[best]++
   }
 
@@ -144,7 +272,7 @@ export function posterize(img: RGBAImage, colors: number, seed = 1): { palette: 
   const black = srgbToLab(0, 0, 0)
   const white = srgbToLab(255, 255, 255)
   for (let c = 0; c < k; c++) {
-    if (num[c] === 0) continue
+    if (!alive[c] || num[c] === 0) continue
     let col: RGB = { r: Math.round(mR[c] / num[c]), g: Math.round(mG[c] / num[c]), b: Math.round(mB[c] / num[c]) }
     const lab: Lab = { L: cL[c], a: cA[c], b: cB[c] }
     if (deltaE76(lab, black) < 3) col = { r: 0, g: 0, b: 0 }
@@ -181,6 +309,34 @@ export function posterize(img: RGBAImage, colors: number, seed = 1): { palette: 
   return { palette }
 }
 
+/**
+ * How much a posterize changed the ink. `shiftedFraction`: share of pixels with alpha > 0 in
+ * `after` whose Delta E moved by more than 15. `lostAccentFraction`: share of those pixels that were
+ * saturated before (C* > 25) and are no longer saturated after (C* < 12).
+ */
+export function posterizeShift(
+  before: RGBAImage,
+  after: RGBAImage,
+): { shiftedFraction: number; lostAccentFraction: number } {
+  const n = Math.min(before.width * before.height, after.width * after.height)
+  const b = before.data
+  const a = after.data
+  let ink = 0
+  let shifted = 0
+  let lost = 0
+  for (let p = 0; p < n; p++) {
+    const i = p * 4
+    if (a[i + 3] === 0) continue
+    ink++
+    if (a[i] === b[i] && a[i + 1] === b[i + 1] && a[i + 2] === b[i + 2]) continue
+    const lb = srgbToLab(b[i], b[i + 1], b[i + 2])
+    const la = srgbToLab(a[i], a[i + 1], a[i + 2])
+    if (deltaE76(lb, la) > 15) shifted++
+    if (Math.hypot(lb.a, lb.b) > 25 && Math.hypot(la.a, la.b) < 12) lost++
+  }
+  return { shiftedFraction: ink ? shifted / ink : 0, lostAccentFraction: ink ? lost / ink : 0 }
+}
+
 /** Blend towards luminance grey. amount 0..1. */
 export function desaturate(img: RGBAImage, amount: number): void {
   const a = Math.min(1, Math.max(0, amount))
@@ -211,8 +367,11 @@ export function adjustContrast(img: RGBAImage, amount: number): void {
   }
 }
 
+/** Snap tolerance shared by snapBlackWhite and colorWarnings. */
+export const SNAP_TOL = 10
+
 /** Channels all <= tol -> black; all >= 255 - tol -> white (alpha > 0 only). */
-export function snapBlackWhite(img: RGBAImage, tol = 8): { snapped: number } {
+export function snapBlackWhite(img: RGBAImage, tol = SNAP_TOL): { snapped: number } {
   const d = img.data
   const hi = 255 - tol
   let snapped = 0
@@ -326,8 +485,8 @@ export function colorWarnings(img: RGBAImage): {
     const b = d[i + 2]
     const mx = r > g ? (r > b ? r : b) : g > b ? g : b
     const mn = r < g ? (r < b ? r : b) : g < b ? g : b
-    if (mx >= 1 && mx <= 20) nearBlack++
-    if (mn >= 235 && mn <= 254) nearWhite++
+    if (mx >= 1 && mx <= SNAP_TOL) nearBlack++
+    if (mn >= 255 - SNAP_TOL && mn <= 254) nearWhite++
     if (mx <= 191) continue // value <= 0.75
     const delta = mx - mn
     if (delta / mx <= 0.75) continue
@@ -355,12 +514,12 @@ export function colorWarnings(img: RGBAImage): {
   }
   if (ink && nearBlack / ink >= 0.01) {
     messages.push(
-      `${Math.round((nearBlack / ink) * 100)}% of the ink is near-black but not pure black. Snap it to pure black so it prints as one solid ink.`,
+      `${Math.round((nearBlack / ink) * 100)}% of the ink is near-black but not pure black. Turn on Snap near-black/white to fix it.`,
     )
   }
   if (ink && nearWhite / ink >= 0.01) {
     messages.push(
-      `${Math.round((nearWhite / ink) * 100)}% of the ink is near-white but not pure white. Snap it to pure white so the white layer stays clean.`,
+      `${Math.round((nearWhite / ink) * 100)}% of the ink is near-white but not pure white. Turn on Snap near-black/white to fix it.`,
     )
   }
   return { saturatedFraction, nearBlackNotPure: nearBlack, nearWhiteNotPure: nearWhite, messages }

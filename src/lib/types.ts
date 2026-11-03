@@ -72,9 +72,9 @@ export interface ProcessSettings {
   /**
    * mode 'alpha': turn soft alpha (shadows, glows, feathering) into dots.
    * mode 'luminance': turn tones with luminance in [lumLo, lumHi] into dots;
-   *   ink 'original' keeps each pixel's color, 'auto' picks black or white against the garment
-   *   (and sets darkInk to match), otherwise ink is a hex color.
-   *   darkInk true: darker pixels get more coverage (dark ink on light garment).
+   *   ink 'original' keeps each pixel's color, 'auto' picks black or white against the garment,
+   *   otherwise ink is a hex color. Which tones get more coverage is derived from the garment:
+   *   on a dark shirt lighter tones get more ink, on a light shirt darker tones do.
    */
   halftone: {
     enabled: boolean
@@ -84,7 +84,6 @@ export interface ProcessSettings {
     lumLo: number
     lumHi: number
     ink: string
-    darkInk: boolean
   }
   /** Fade one edge into the garment through a halftone alpha gradient (never soft alpha). */
   fadeEdge: { enabled: boolean; edge: Edge; fraction: number }

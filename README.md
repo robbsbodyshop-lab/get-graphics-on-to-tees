@@ -30,9 +30,12 @@ Everything runs client-side: no accounts, no server, no uploads. After the first
    edge fade into the garment, then hard alpha threshold, speck removal, optional choke / thicken.
 6. **Upscale**: Real-ESRGAN in a Web Worker with progress and cancel; Lanczos fallback; vectorize
    for logos with 8 or fewer colors. Warns above 2x.
-7. **Export**: `design_{W}x{H}in_300dpi.png`, PNG-24 RGBA, sRGB, pHYs 300 DPI, trimmed to the art plus
-   0.1 in, never mirrored unless you ask. A printable job sheet (copy / print) and an optional 22 in
-   gang-sheet packer.
+7. **Export**: `design_{W}x{H}in_300dpi.png`, PNG-24 RGBA with an embedded sRGB ICC profile, pHYs
+   300 DPI, trimmed to the art plus 0.1 in, never mirrored unless you ask. Transparent pixels carry no
+   hidden color (RGB 0,0,0 under alpha 0). An export check reads the file's real pixels: fully clear /
+   solid / partly clear, hidden color, ink colors and brightness, and how much ink is close to the shirt
+   color, with a crop inspector over black or the shirt color at 1-3x. A printable job sheet
+   (copy / print) and an optional 22 in gang-sheet packer.
 
 Processing order is fixed: crop to the art → upscale → color work → knockout → distress → halftone →
 alpha threshold → speck removal → outline → choke / thicken → trim → export. Thresholding happens at
