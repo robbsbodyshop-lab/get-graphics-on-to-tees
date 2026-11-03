@@ -32,6 +32,14 @@ npx playwright install chromium
 The zip contains the `.git` folder, so `git log` shows the history. To put it on GitHub, create an
 empty repo and run `git remote add origin <url>` then `git push -u origin HEAD`.
 
+Why not `claude --teleport`? Teleport pulls a cloud session into your terminal, but the docs list
+these requirements: the session's branch must be pushed to a remote, you run it from a checkout of the
+same repository, git state is clean, and you're signed in to the same claude.ai account
+(https://code.claude.com/docs/en/claude-code-on-the-web.md, "Continue a cloud session in your terminal").
+This repo has no remote, so use the zip. If you create an empty GitHub repo and give its name to the cloud
+session, it can push there, and then teleport becomes an option. The docs don't say whether teleport still
+works once usage limits are hit, so don't count on it.
+
 ## 2. Resume prompt (paste this into Claude Code desktop, opened in the dtf-prep folder)
 
 ```
