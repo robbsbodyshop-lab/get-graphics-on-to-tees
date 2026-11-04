@@ -8,6 +8,11 @@ import { Eyedropper } from './Eyedropper'
 import { Check, Range, Section, Select, Status, Swatch, fmtInt } from './ui'
 import { useStudio } from './studio'
 
+const DOTS_HINT =
+  'Art that already has a transparent background: use Soft edges and shadows. Tones / photo is for photos on a solid background.'
+const POSTERIZE_HINT =
+  'For flat logos and type. On photo-style or textured art it causes banding and can turn small accent colors gray.'
+
 const INKS: [string, string][] = [
   ['auto', 'Auto contrast'],
   ['original', 'Original colors'],
@@ -16,10 +21,12 @@ const INKS: [string, string][] = [
 ]
 
 export function KnockoutSection(): ReactElement {
-  const { settings: s, update, r, preview } = useStudio()
+  const { settings: s, update, r, preview, source } = useStudio()
   const rep = preview.report
   const known = ['#000000', '#ffffff', 'garment']
   const outlineSel = known.includes(s.outline.color) ? s.outline.color : 'custom'
+  const hasAlpha = source?.analysis.hasAlpha ?? false
+  const manyColors = (source?.analysis.distinctColors ?? 0) > 256
   const speckPx = speckSizePx(s.speckMinIn, OUTPUT_DPI)
 
   return (
@@ -87,19 +94,18 @@ export function KnockoutSection(): ReactElement {
               <option value="alpha">Soft edges and shadows (alpha)</option>
               <option value="luminance">Tones / photo (luminance)</option>
             </Select>
+            {s.halftone.mode === 'luminance' && hasAlpha ? (
+              <Status level="warn">{DOTS_HINT}</Status>
+            ) : (
+              <p className="hint">{DOTS_HINT}</p>
+            )}
             <Range label="LPI (lines per inch)" value={s.halftone.lpi} min={45} max={65} step={1} onChange={(v) => update((x) => void (x.halftone.lpi = v))} />
             {s.halftone.mode === 'luminance' && (
               <>
                 <Select
                   label="Ink"
                   value={s.halftone.ink}
-                  onChange={(v) =>
-                    update((x) => {
-                      x.halftone.ink = v
-                      if (v === '#000000') x.halftone.darkInk = true
-                      if (v === '#ffffff') x.halftone.darkInk = false
-                    })
-                  }
+                  onChange={(v) => update((x) => void (x.halftone.ink = v))}
                 >
                   {INKS.map(([v, l]) => (
                     <option key={v} value={v}>{l}</option>
@@ -128,11 +134,11 @@ export function KnockoutSection(): ReactElement {
       <details className="details">
         <summary>Color work</summary>
         <div className="indent">
-          <Check label="Posterize" checked={s.posterize.enabled} onChange={(b) => update((x) => void (x.posterize.enabled = b))} hint="Reduce to a few flat colors." />
+          <Check label="Posterize" checked={s.posterize.enabled} onChange={(b) => update((x) => void (x.posterize.enabled = b))} hint={s.posterize.enabled && manyColors ? <span className="warn-line">⚠ {POSTERIZE_HINT}</span> : POSTERIZE_HINT} />
           {s.posterize.enabled && <Range label="Colors" value={s.posterize.colors} min={2} max={16} step={1} onChange={(v) => update((x) => void (x.posterize.colors = v))} />}
           <Range label="Desaturate" value={Math.round(s.desaturate * 100)} min={0} max={100} step={1} display={`${Math.round(s.desaturate * 100)}%`} onChange={(v) => update((x) => void (x.desaturate = v / 100))} />
           <Range label="Contrast" value={Math.round(s.contrast * 100)} min={-100} max={100} step={1} onChange={(v) => update((x) => void (x.contrast = v / 100))} />
-          <Check label="Snap near-black/white to pure" checked={s.snapBlackWhite} onChange={(b) => update((x) => void (x.snapBlackWhite = b))} hint="Keeps black at 0,0,0 and white at 255,255,255." />
+          <Check label="Snap near-black/white to pure" checked={s.snapBlackWhite} onChange={(b) => update((x) => void (x.snapBlackWhite = b))} hint="Turns near-white (245+) into pure white and near-black (10 and under) into pure black." />
           <Check label="Line art (1-bit)" checked={s.lineArt.enabled} onChange={(b) => update((x) => void (x.lineArt.enabled = b))} hint="Dark tones become ink, light tones become fabric." />
           {s.lineArt.enabled && (
             <>

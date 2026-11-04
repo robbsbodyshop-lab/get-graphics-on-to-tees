@@ -51,13 +51,13 @@
       "id": "vintage-tour",
       "name": "Vintage band / tour tee",
       "inspiredBy": "UO Metallica and Soundgarden tour reprints, J.Crew vintage wash",
-      "description": "Photo halftoned at 50 LPI, cracked distress, faded palette. Looks best on washed or mineral blanks.",
+      "description": "Photo halftoned at 50 LPI, cracked distress, faded palette. Looks best on washed or mineral blanks. For art that already has a transparent background, set Dots from to Soft edges (alpha).",
       "keywords": ["vintage", "band", "tour", "concert", "reprint", "90s", "80s", "retro", "rock", "rap tee", "bootleg"],
       "mockupFinish": "washed",
       "recommendGarments": ["Comfort Colors 1717", "Comfort Colors 1745", "SmartBlanks MT600", "SmartBlanks MH700", "DigiPrint 1300 acid wash", "LBL 2102"],
       "settings": {
         "desaturate": 0.25,
-        "halftone": { "enabled": true, "mode": "luminance", "lpi": 50, "ink": "original", "lumLo": 0, "lumHi": 1, "darkInk": true },
+        "halftone": { "enabled": true, "mode": "luminance", "lpi": 50, "ink": "original", "lumLo": 0, "lumHi": 1 },
         "distress": { "enabled": true, "mask": "cracked", "intensity": 0.3 },
         "knockoutGarment": true
       }
@@ -84,7 +84,7 @@
       "keywords": ["photo", "photograph", "halftone", "screen tone", "picture", "portrait", "xerox photo"],
       "settings": {
         "contrast": 0.2,
-        "halftone": { "enabled": true, "mode": "luminance", "lpi": 55, "ink": "auto", "lumLo": 0, "lumHi": 1, "darkInk": true }
+        "halftone": { "enabled": true, "mode": "luminance", "lpi": 55, "ink": "auto", "lumLo": 0, "lumHi": 1 }
       }
     },
     {

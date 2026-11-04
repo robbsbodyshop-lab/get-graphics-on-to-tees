@@ -1,8 +1,9 @@
 /// <reference types="node" />
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { deflateSync } from 'node:zlib'
+import { deflateSync, inflateSync } from 'node:zlib'
 import { crc32, decodePng, encodePng, readPngInfo } from './png'
+import { srgbIccProfile } from './srgbIcc'
 import type { RGBAImage } from './types'
 
 function randomImage(w: number, h: number, seed = 1): RGBAImage {
@@ -75,7 +76,31 @@ describe('png', () => {
     expect(info.dpiX).toBeLessThan(300.1)
     expect(info.dpiY).toBeGreaterThan(299.9)
     expect(info.hasSRGB).toBe(true)
+    expect(info.iccProfileName).toBe('sRGB')
     expect(readPngInfo(new Uint8Array([1, 2, 3]))).toBeNull()
+  })
+
+  it('embeds the sRGB ICC profile in an iCCP chunk (and no separate sRGB chunk)', async () => {
+    const png = await encodePng(randomImage(4, 4))
+    const types: string[] = []
+    let iccp: Uint8Array | null = null
+    let pos = 8
+    while (pos < png.length) {
+      const len = new DataView(png.buffer, png.byteOffset + pos).getUint32(0)
+      const type = String.fromCharCode(...png.subarray(pos + 4, pos + 8))
+      types.push(type)
+      if (type === 'iCCP') iccp = png.subarray(pos + 8, pos + 8 + len)
+      pos += 12 + len
+    }
+    expect(types.slice(0, 2)).toEqual(['IHDR', 'iCCP'])
+    expect(types).not.toContain('sRGB')
+    expect(types.indexOf('iCCP')).toBeLessThan(types.indexOf('IDAT'))
+    const nul = iccp!.indexOf(0)
+    expect(String.fromCharCode(...iccp!.subarray(0, nul))).toBe('sRGB')
+    expect(iccp![nul + 1]).toBe(0) // compression method
+    const profile = new Uint8Array(inflateSync(iccp!.subarray(nul + 2)))
+    expect(profile).toEqual(srgbIccProfile())
+    expect(String.fromCharCode(...profile.subarray(36, 40))).toBe('acsp') // ICC signature
   })
 
   it('decodes hand-built PNGs using each filter type', () => {

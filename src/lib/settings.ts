@@ -14,7 +14,7 @@ export const DEFAULT_SETTINGS: ProcessSettings = {
   removeBackground: false,
 
   distress: { enabled: false, mask: 'cracked', intensity: 0.3 },
-  halftone: { enabled: false, mode: 'alpha', lpi: 55, angle: 22.5, lumLo: 0, lumHi: 1, ink: 'original', darkInk: true },
+  halftone: { enabled: false, mode: 'alpha', lpi: 55, angle: 22.5, lumLo: 0, lumHi: 1, ink: 'original' },
   fadeEdge: { enabled: false, edge: 'bottom', fraction: 0.3 },
 
   alphaThreshold: 0.5,
@@ -49,6 +49,8 @@ export const TRIM_MARGIN_IN = 0.1
 export const MIN_STROKE_IN = 0.04
 export const MIN_GAP_IN = 0.04
 export const MIN_TEXT_IN = 0.15
+/** Smallest dot that reliably transfers; smaller islands are removed even inside halftones. */
+export const MIN_DOT_IN = 0.01
 export const SOLID_WARN = 0.7
 /** One distress tile spans this many inches of fabric. */
 export const DISTRESS_TILE_IN = 3

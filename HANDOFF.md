@@ -102,6 +102,19 @@ Model setup also has timeouts (20 s WebGPU, 60 s WASM) and falls back to Lanczos
 - **Playwright** is pinned to 1.63.0 because the cloud box had Chromium for that version. On desktop,
   `npx playwright install chromium` fetches the matching browser.
 - **Added setting `lineArt`** (1-bit threshold to ink) for the stamp and hand-drawn presets.
+- **From the first real session (playbook, 2026-11-03):**
+  - Exports clear RGB under alpha 0 (it caused white "splatter" in viewers and can fringe in a RIP).
+  - The PNG embeds an sRGB ICC profile in iCCP (LittleCMS "sRGB built-in", `src/lib/srgbIcc.ts`) instead of
+    the sRGB chunk; the spec says not to write both.
+  - The halftone "dark ink" direction is derived from the shirt, never stored (the stored default
+    wiped light art on black tees).
+  - Dots under 0.01 in are removed even inside halftones (`MIN_DOT_IN`).
+  - Snap near-black/white and its warning share one range (10 levels), so the toggle clears the warning.
+  - Posterize rescues small saturated accents and reports when it shifts or loses colors.
+  - The eyedropper only picks in an explicit pick mode.
+  - New warnings: ink close to the shirt color (>25% within 40 brightness levels), garment knockout
+    deleting >30% of the art on a mid-tone shirt, Tones halftone keeping <50% of the ink, and a note when
+    thin strokes and narrow gaps are both under 1%.
 
 ## 5. Module map (exports other code relies on)
 

@@ -1,3 +1,4 @@
+import { srgbIccProfile } from './srgbIcc'
 import type { RGBAImage } from './types'
 
 const SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10]
@@ -142,11 +143,21 @@ export async function encodePng(img: RGBAImage, opts: EncodePngOptions = {}): Pr
   phys[8] = 1
   const gama = new Uint8Array(4)
   put32(gama, 0, 45455)
+  // iCCP: profile name "sRGB", NUL, compression method 0, zlib-compressed ICC profile. The PNG spec
+  // says sRGB and iCCP should not both be present, so the ICC profile replaces the sRGB chunk;
+  // gAMA stays as a fallback for viewers without color management.
+  const icc = await pipe(srgbIccProfile(), new CompressionStream('deflate'))
+  const name = new TextEncoder().encode('sRGB')
+  const iccp = new Uint8Array(name.length + 2 + icc.length)
+  iccp.set(name, 0)
+  iccp[name.length] = 0
+  iccp[name.length + 1] = 0
+  iccp.set(icc, name.length + 2)
 
   const parts: Uint8Array[] = [
     new Uint8Array(SIGNATURE),
     chunk('IHDR', ihdr),
-    chunk('sRGB', new Uint8Array([0])),
+    chunk('iCCP', iccp),
     chunk('gAMA', gama),
     chunk('pHYs', phys),
   ]
@@ -177,7 +188,10 @@ export interface PngInfo {
   colorType: number
   dpiX: number | null
   dpiY: number | null
+  /** sRGB chunk present, or an embedded ICC profile whose name mentions sRGB. */
   hasSRGB: boolean
+  /** Name of the embedded ICC profile (iCCP chunk), or null. */
+  iccProfileName: string | null
 }
 
 export function readPngInfo(bytes: Uint8Array): PngInfo | null {
@@ -186,6 +200,7 @@ export function readPngInfo(bytes: Uint8Array): PngInfo | null {
   let dpiX: number | null = null
   let dpiY: number | null = null
   let hasSRGB = false
+  let iccProfileName: string | null = null
   let seenHeader = false
   let pos = 8
   while (pos + 8 <= bytes.length) {
@@ -205,13 +220,18 @@ export function readPngInfo(bytes: Uint8Array): PngInfo | null {
         dpiY = Math.round(u32(bytes, d + 4) * 0.0254 * 10) / 10
       }
     } else if (type === 'sRGB') hasSRGB = true
-    else if (type === 'IDAT' || type === 'IEND') {
+    else if (type === 'iCCP') {
+      let end = d
+      while (end < d + Math.min(len, 80) && bytes[end] !== 0) end++
+      iccProfileName = String.fromCharCode(...bytes.subarray(d, end))
+      if (/srgb/i.test(iccProfileName)) hasSRGB = true
+    } else if (type === 'IDAT' || type === 'IEND') {
       if (type === 'IEND') break
     }
     pos = d + len + 4
   }
   if (!seenHeader) return null
-  return { width, height, bitDepth, colorType, dpiX, dpiY, hasSRGB }
+  return { width, height, bitDepth, colorType, dpiX, dpiY, hasSRGB, iccProfileName }
 }
 
 export async function decodePng(bytes: Uint8Array): Promise<RGBAImage> {

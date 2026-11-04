@@ -4,13 +4,15 @@ import { hexToRgb, lightness01 } from './image/color'
 import { knockoutColors, removeBackgroundFlood } from './image/knockout'
 import { choke, hardThreshold, removeSpecks, speckSizePx, thicken } from './image/alpha'
 import { alphaBBox, crop, fitCanvas, mirrorHorizontal, solidCoverage, trim } from './image/geometry'
-import { addOutline, adjustContrast, colorWarnings, desaturate, posterize, snapBlackWhite } from './image/colorwork'
+import { addOutline, adjustContrast, colorWarnings, desaturate, posterize, posterizeShift, snapBlackWhite } from './image/colorwork'
 import { applyDistress, generateMask } from './image/masks'
 import { fadeEdgeHalftone, halftoneAlpha, halftoneLuminance } from './image/halftone'
 import { checkStrokes, type StrokeCheck } from './image/strokes'
+import { clearHiddenColor, inspectExport, type ExportCheck } from './exportCheck'
 import { resizeLanczos } from './resize'
 import {
   DISTRESS_TILE_IN,
+  MIN_DOT_IN,
   MIN_GAP_IN,
   MIN_STROKE_IN,
   MIN_TEXT_IN,
@@ -64,7 +66,8 @@ export interface PipelineReport {
   /** Counted at source resolution, so the numbers match what the user sees in step 5. */
   sourceRemoved: { garment: number; picks: number; background: number; lineArt: number }
   removed: { garment: number; picks: number; background: number; distress: number; threshold: number; choke: number }
-  specks: { islands: number; pixels: number; minSizePx: number }
+  /** Islands under speckMinIn, plus dots under MIN_DOT_IN (1-2 px dots that won't transfer). */
+  specks: { islands: number; pixels: number; minSizePx: number; tinyDots: number }
   halftoneDots: number
   added: { outline: number; thicken: number }
   palette: string[]
@@ -72,6 +75,10 @@ export interface PipelineReport {
   solid: { coverage: number; warn: boolean }
   strokes: StrokeCheck | null
   colors: { saturatedFraction: number; messages: string[] }
+  /** The playbook's export verification, computed on the final pixels. */
+  check: ExportCheck
+  /** Transparent pixels whose leftover RGB was cleared to 0,0,0. */
+  hiddenColorCleared: number
   messages: string[]
 }
 
@@ -84,6 +91,18 @@ function maskFor(kind: MaskKind): Uint8Array {
     maskCache.set(kind, m)
   }
   return m
+}
+
+/**
+ * Which tones get more halftone coverage. On a dark shirt lighter tones need more ink, on a light
+ * shirt darker tones do; for a fixed ink, coverage follows how far each tone is from the shirt.
+ */
+export function halftoneDarkInk(ink: string, garmentHex: string): boolean {
+  const g = hexToRgb(garmentHex)
+  const gL = lightness01(g.r, g.g, g.b)
+  if (ink === 'original' || ink === 'auto') return gL >= 0.5
+  const c = hexToRgb(ink)
+  return lightness01(c.r, c.g, c.b) < gL
 }
 
 /** Black or white, whichever contrasts with the garment. */
@@ -143,6 +162,8 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
   // ---- A. find the art at source resolution ----------------------------------------------
   progress('Finding the art', 0)
   const probe = cloneImage(input.source)
+  let srcInk = 0
+  for (let i = 3; i < probe.data.length; i += 4) if (probe.data[i] > 0) srcInk++
   const srcKo = knockouts(probe, s, input.garmentHex)
   const lineArtRemoved = s.lineArt.enabled ? applyLineArt(probe, s.lineArt.threshold, null).removed : 0
   // Art bounds ignore faint pixels the threshold will drop anyway.
@@ -180,7 +201,21 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
   if (s.contrast !== 0) adjustContrast(work, s.contrast)
   if (s.lineArt.enabled) applyLineArt(work, s.lineArt.threshold, resolveLineInk(s, input.garmentHex))
   let palette: RGB[] = []
-  if (s.posterize.enabled) palette = posterize(work, s.posterize.colors).palette
+  if (s.posterize.enabled) {
+    const before = cloneImage(work)
+    palette = posterize(work, s.posterize.colors).palette
+    // A cleared warning can hide damage: say when posterize moved a lot of the ink or lost an accent.
+    const shift = posterizeShift(before, work)
+    if (shift.lostAccentFraction > 0.002)
+      messages.push(
+        `Posterize turned ${(shift.lostAccentFraction * 100).toFixed(1)}% of the ink from a saturated color (an accent such as a red) to a dull one. ` +
+          'Raise the color count or turn Posterize off; it suits flat logos, not photo-style or textured art.',
+      )
+    if (shift.shiftedFraction > 0.1)
+      messages.push(
+        `Posterize changed ${Math.round(shift.shiftedFraction * 100)}% of the ink noticeably (Delta E over 15); expect banding in smooth tones. Check the crop inspector after export.`,
+      )
+  }
   if (s.snapBlackWhite) snapBlackWhite(work)
   check()
 
@@ -202,6 +237,8 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
   // ---- C4. halftone (protect mask keeps dots safe from speck removal) ----------------------
   let protect: Uint8Array | undefined
   let halftoneDots = 0
+  let inkBeforeHalftone = 0
+  if (s.halftone.enabled || s.fadeEdge.enabled) for (let i = 3; i < work.data.length; i += 4) if (work.data[i] > 0) inkBeforeHalftone++
   const mergeMask = (m: Uint8Array) => {
     if (!protect) protect = m
     else for (let i = 0; i < m.length; i++) protect[i] |= m[i]
@@ -221,8 +258,8 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
       halftoneDots += r.dotted
     } else {
       let ink = s.halftone.ink
-      let darkInk = s.halftone.darkInk
-      if (ink === 'auto') ({ hex: ink, darkInk } = contrastInk(input.garmentHex))
+      const darkInk = halftoneDarkInk(ink, input.garmentHex)
+      if (ink === 'auto') ink = contrastInk(input.garmentHex).hex
       const r = halftoneLuminance(work, { ...ht, lumLo: s.halftone.lumLo, lumHi: s.halftone.lumHi, ink, darkInk })
       mergeMask(r.mask)
       halftoneDots += r.dotted
@@ -237,6 +274,27 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
   // ---- C6. speck removal ------------------------------------------------------------------
   const minSpeck = speckSizePx(s.speckMinIn, dpi)
   const sp = s.speckMinIn > 0 ? removeSpecks(work, minSpeck, protect) : { islandsRemoved: 0, pixelsRemoved: 0 }
+  // Dots under 0.01 in (1-2 px at 300 DPI) don't transfer reliably, halftone dots included.
+  const minDot = speckSizePx(MIN_DOT_IN, dpi)
+  const tiny = minDot > 1 ? removeSpecks(work, minDot) : { islandsRemoved: 0, pixelsRemoved: 0 }
+  if (inkBeforeHalftone > 0 && s.halftone.enabled && s.halftone.mode === 'luminance') {
+    let inkAfter = 0
+    for (let i = 3; i < work.data.length; i += 4) if (work.data[i] > 0) inkAfter++
+    if (inkAfter < inkBeforeHalftone * 0.5)
+      messages.push(
+        `The Tones halftone kept only ${Math.round((inkAfter / inkBeforeHalftone) * 100)}% of the ink. ` +
+          'For art that already has a transparent background, set "Dots from" to Soft edges and shadows (alpha); Tones is for photos on a solid background.',
+      )
+  }
+  if (s.knockoutGarment && srcInk > 0) {
+    const g = hexToRgb(input.garmentHex)
+    const gL = lightness01(g.r, g.g, g.b)
+    const share = srcKo.garment / srcInk
+    if (share > 0.3 && gL > 0.2 && gL < 0.8)
+      messages.push(
+        `Knocking out the shirt color removed ${Math.round(share * 100)}% of the art. On a mid-tone shirt that deletes real ink: turn the garment knockout off or lower the tolerance.`,
+      )
+  }
   check()
 
   // ---- C7. outline, choke / thicken ---------------------------------------------------------
@@ -267,6 +325,11 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
       protect,
     })
     messages.push(...strokes.messages)
+    const gapFraction = strokes.thinGapPixels / Math.max(1, solid.opaque)
+    if (strokes.thinStrokePixels > 0 && strokes.thinGapPixels > 0 && strokes.thinStrokeFraction < 0.01 && gapFraction < 0.01)
+      messages.push(
+        'Thin strokes and narrow gaps are each under 1% of the ink. Thicken fixes one and makes the other worse, so at this level it is usually fine to leave both.',
+      )
   }
   const colors = colorWarnings(work)
   messages.push(...colors.messages)
@@ -276,7 +339,16 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
   let out = trim(work, marginPx)
   out = fitCanvas(out, canvasW, out.height)
   if (s.mirror) mirrorHorizontal(out)
+  // Transparent pixels can still carry the source's RGB; some viewers show it and some RIP or
+  // resize steps bleed it into edges as a fringe. Clear it so alpha 0 means nothing at all.
+  const hiddenColorCleared = clearHiddenColor(out)
   const semi = countSemiTransparent(out)
+  const exportCheck = inspectExport(out, input.garmentHex)
+  if (exportCheck.garmentClose > 0.25)
+    messages.push(
+      `${Math.round(exportCheck.garmentClose * 100)}% of the ink is within 40 brightness levels of the shirt color, so it will look washed out on this shirt. ` +
+        'Add contrast, pick a contrasting shirt, or make a separate export for this shirt color.',
+    )
   progress('Done', 1)
 
   return {
@@ -293,7 +365,7 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
       upscaledWith,
       sourceRemoved: { ...srcKo, lineArt: lineArtRemoved },
       removed: { ...ko, distress: distressRemoved, threshold: th.madeTransparent, choke: chokeRemoved },
-      specks: { islands: sp.islandsRemoved, pixels: sp.pixelsRemoved, minSizePx: minSpeck },
+      specks: { islands: sp.islandsRemoved, pixels: sp.pixelsRemoved + tiny.pixelsRemoved, minSizePx: minSpeck, tinyDots: tiny.islandsRemoved },
       halftoneDots,
       added: { outline: outlineAdded, thicken: thickenAdded },
       palette: palette.map((c) => `#${[c.r, c.g, c.b].map((v) => v.toString(16).padStart(2, '0')).join('')}`),
@@ -301,6 +373,8 @@ export async function runPipeline(input: PipelineInput): Promise<{ image: RGBAIm
       solid: { coverage: solid.coverage, warn: solid.coverage > SOLID_WARN },
       strokes,
       colors: { saturatedFraction: colors.saturatedFraction, messages: colors.messages },
+      check: exportCheck,
+      hiddenColorCleared,
       messages,
     },
   }
