@@ -7,14 +7,14 @@ _Last updated: 2026-11-03. Build complete: all done criteria met (118 unit tests
 
 ## 1. Get the code onto your machine
 
-The cloud repo has **no GitHub remote**, so the zip that was sent to you in chat is the copy to use.
+The code is on GitHub: https://github.com/robbsbodyshop-lab/get-graphics-on-to-tees (private, branch `main`).
 
 ```bash
-unzip dtf-prep-handoff.zip -d ~/code
+git clone https://github.com/robbsbodyshop-lab/get-graphics-on-to-tees ~/code/get-graphics-on-to-tees
 ```
 
 ```bash
-cd ~/code/dtf-prep
+cd ~/code/get-graphics-on-to-tees
 ```
 
 ```bash
@@ -29,18 +29,14 @@ npm test
 npx playwright install chromium
 ```
 
-The zip contains the `.git` folder, so `git log` shows the history. To put it on GitHub, create an
-empty repo and run `git remote add origin <url>` then `git push -u origin HEAD`.
+The zip sent in chat is the same code, if you ever need an offline copy.
 
-Why not `claude --teleport`? Teleport pulls a cloud session into your terminal, but the docs list
-these requirements: the session's branch must be pushed to a remote, you run it from a checkout of the
-same repository, git state is clean, and you're signed in to the same claude.ai account
+`claude --teleport` is also an option now that the branch is on GitHub. The docs list these requirements:
+run it from a clean checkout of this repo, and be signed in to the same claude.ai account
 (https://code.claude.com/docs/en/claude-code-on-the-web.md, "Continue a cloud session in your terminal").
-This repo has no remote, so use the zip. If you create an empty GitHub repo and give its name to the cloud
-session, it can push there, and then teleport becomes an option. The docs don't say whether teleport still
-works once usage limits are hit, so don't count on it.
+The docs don't say whether teleport still works once usage limits are hit, so the clone above is the safe route.
 
-## 2. Resume prompt (paste this into Claude Code desktop, opened in the dtf-prep folder)
+## 2. Resume prompt (paste this into Claude Code desktop, opened in the repo folder)
 
 ```
 Continue building DTF Prep. Read HANDOFF.md first, then docs/BRIEF.md (the full spec).
@@ -127,6 +123,6 @@ Model setup also has timeouts (20 s WebGPU, 60 s WASM) and falls back to Lanczos
 
 - Long-sleeve placements: pass `rotateDesign` to the mockup and add a "rotate 90°" note to the job sheet.
 - Try the WebGPU path on a machine with a GPU (Chrome desktop). It should be much faster than WASM.
-- Push to GitHub (`git remote add origin <url>`, `git push -u origin main`) and enable Pages, or import into Vercel.
+- Deploy: import the repo into Vercel (vercel.com/new); `vercel.json` already sets the build, output and headers.
 - `dev/esrgan-check.html` is a dev-only harness (open it on `npm run dev`) that runs the AI upscaler through the worker and logs timings.
 - Oxlint shows 3 fast-refresh warnings (helpers exported next to components). They're harmless.

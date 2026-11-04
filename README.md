@@ -78,8 +78,9 @@ only 0 or 255 alpha. It also exports the three files in `samples/` and checks ea
 
 It's a static site: `npm run build` writes `dist/`.
 
-- **Vercel**: import the repo. `vercel.json` sets the build and adds the COOP/COEP headers that let
-  the upscaler use several CPU threads.
+- **Vercel**: at https://vercel.com/new import `robbsbodyshop-lab/get-graphics-on-to-tees` and click
+  Deploy; no settings to change. `vercel.json` sets the build command, the `dist` output and the COOP/COEP
+  headers that let the upscaler use several CPU threads. After that, every push to `main` redeploys.
 - **GitHub Pages**: push to `main` and set Settings → Pages → Source to "GitHub Actions";
   `.github/workflows/deploy-pages.yml` tests, builds and publishes. Pages can't send custom headers,
   so the service worker adds them; multithreading switches on from the second visit.
