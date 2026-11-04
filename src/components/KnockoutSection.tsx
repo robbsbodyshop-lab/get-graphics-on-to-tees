@@ -33,7 +33,7 @@ export function KnockoutSection(): ReactElement {
     <Section
       id="knockout"
       num={5}
-      title="Knock out"
+      title="Knock out (fine-tune)"
       lead="This is the step that stops the print looking like a block sticker: remove the garment color, the background and the tones that should be fabric, then turn soft edges into dots."
     >
       <div className="group">

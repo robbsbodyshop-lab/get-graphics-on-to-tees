@@ -6,6 +6,10 @@ import { analyzeImage } from './lib/image/analyze'
 import { dominantColorCount } from './lib/upscale/vectorize'
 import { DEFAULT_SETTINGS, mergeSettings } from './lib/settings'
 import { getPreset } from './lib/presets'
+import { describeImage } from './lib/look/traits'
+import { interpretLook } from './lib/look/interpret'
+import type { LookContext, LookPlan } from './lib/look/types'
+import type { MockupFinish } from './components/GarmentMockup'
 import { exportFileName } from './lib/pipeline'
 import {
   PLACEMENTS,
@@ -23,6 +27,7 @@ import type { UpscaleMode } from './workers/pipeline.worker'
 import {
   DEFAULT_CUSTOM,
   StudioContext,
+  colorByName,
   resolveSelection,
 } from './components/studio'
 import type {
@@ -30,6 +35,7 @@ import type {
   ExportState,
   ExportedDesign,
   Loaded,
+  LookResult,
   PreviewState,
   Selection,
   Sizing,
@@ -44,6 +50,14 @@ import { UpscaleSection } from './components/UpscaleSection'
 import { ExportSection } from './components/ExportSection'
 import { SidePanel } from './components/SidePanel'
 import { HelpPanel } from './components/HelpPanel'
+
+interface Snapshot {
+  settings: ProcessSettings
+  presetId: string
+  upscaler: UpscaleMode
+  sel: Selection
+  finishOverride: MockupFinish | null
+}
 
 const EMPTY_PREVIEW: PreviewState = { status: 'idle', stage: '', fraction: 0, url: null, report: null, areaRatio: 1, error: null }
 
@@ -104,6 +118,8 @@ export default function App(): ReactElement {
   const [gang, setGang] = useState<ExportedDesign[]>([])
   const [model, setModel] = useState<Studio['model']>({ state: 'idle', backend: null })
   const [warmNonce, setWarmNonce] = useState(0)
+  const [finishOverride, setFinishOverride] = useState<MockupFinish | null>(null)
+  const [lookApplied, setLookApplied] = useState<{ plan: LookPlan; before: Snapshot; afterKey: string } | null>(null)
 
   const preset = getPreset(presetId)
   const r = useMemo(() => resolveSelection(sel, custom), [sel, custom])
@@ -151,6 +167,7 @@ export default function App(): ReactElement {
   const applyPreset = useCallback(
     (id: string) => {
       setPresetId(id)
+      setFinishOverride(null)
       const p = getPreset(id)
       setSettings(mergeSettings(DEFAULT_SETTINGS, p?.settings))
       if (!p) return
@@ -173,6 +190,82 @@ export default function App(): ReactElement {
     [r, custom, vectorOk],
   )
 
+  // ---- prompt-first look ---------------------------------------------------------------------
+  const stateKey = useMemo(
+    () => JSON.stringify([settings, presetId, upscaler, finishOverride, sel.color, sel.placementId, sel.oversize, sel.widthIn]),
+    [settings, presetId, upscaler, finishOverride, sel],
+  )
+
+  const applyLook = useCallback((): string | null => {
+    if (!source) return 'Upload your artwork first.'
+    if (!source.traits) return `Could not read the image: ${source.traitsError ?? 'unknown error'}`
+    // Re-applying a look the user hasn't adjusted starts from the state before that look, so a new
+    // prompt doesn't inherit the old prompt's placement, width or shirt color, and Undo still goes
+    // back to the user's own settings. After manual adjustments, the current state is the base.
+    const unadjusted = lookApplied !== null && stateKey === lookApplied.afterKey
+    const before: Snapshot = unadjusted ? lookApplied.before : { settings, presetId, upscaler, sel, finishOverride }
+    const baseSel = before.sel
+    const rb = resolveSelection(baseSel, custom)
+    let plan: LookPlan
+    try {
+      const ctx: LookContext = {
+        prompt: look,
+        traits: source.traits,
+        garment: {
+          colorName: rb.colorName,
+          colorHex: rb.colorHex,
+          type: rb.garment.type,
+          sizeClass: rb.garment.sizeClass,
+          availableColors: rb.garment.colors.map((n) => ({ name: n, hex: colorByName(n).hex })),
+        },
+        availablePlacementIds: rb.placements.map((p) => p.id),
+      }
+      plan = interpretLook(ctx)
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e)
+    }
+    let next: Selection = { ...baseSel }
+    let widthIn = baseSel.widthIn
+    if (plan.garmentColor && rb.garment.colors.includes(plan.garmentColor)) next.color = plan.garmentColor
+    if (plan.placementId && rb.placements.some((x) => x.id === plan.placementId)) {
+      next.placementId = plan.placementId
+      next.oversize = !!plan.oversize
+      const r1 = resolveSelection(next, custom)
+      next = r1.sel
+      widthIn = proposeWidth(r1.placement, r1.sel.size, r1.garment.sizeClass, r1.sel.oversize)
+    }
+    if (plan.widthIn) widthIn = Math.min(20, Math.max(0.5, plan.widthIn))
+    next = { ...resolveSelection(next, custom).sel, widthIn }
+    const nextSettings = structuredClone(plan.settings)
+    nextSettings.knockoutPicks = []
+    const nextUpscaler: UpscaleMode = plan.upscale === 'vectorize' && !vectorOk ? 'ai' : plan.upscale
+    const nextPreset = plan.presetId && getPreset(plan.presetId) ? plan.presetId : ''
+    const nextFinish = plan.mockupFinish ?? null
+    setSettings(nextSettings)
+    setPresetId(nextPreset)
+    setUpscaler(nextUpscaler)
+    setSel(next)
+    setFinishOverride(nextFinish)
+    setLookApplied({
+      plan,
+      before,
+      afterKey: JSON.stringify([nextSettings, nextPreset, nextUpscaler, nextFinish, next.color, next.placementId, next.oversize, next.widthIn]),
+    })
+    return null
+  }, [source, look, r, custom, sel, settings, presetId, upscaler, finishOverride, vectorOk, lookApplied, stateKey])
+
+  const undoLook = useCallback(() => {
+    if (!lookApplied) return
+    const b = lookApplied.before
+    setSettings(b.settings)
+    setPresetId(b.presetId)
+    setUpscaler(b.upscaler)
+    setSel(b.sel)
+    setFinishOverride(b.finishOverride)
+    setLookApplied(null)
+  }, [lookApplied])
+  const lookResult: LookResult | null = lookApplied ? { plan: lookApplied.plan, adjusted: stateKey !== lookApplied.afterKey } : null
+
   // ---- loading a file ------------------------------------------------------------------------
   const loadFile = useCallback(
     (file: File) => {
@@ -182,8 +275,16 @@ export default function App(): ReactElement {
         .then((d) => {
           const analysis = analyzeImage(d.image)
           const dominantColors = dominantColorCount(d.image)
+          let traits: Loaded['traits'] = null
+          let traitsError: string | null = null
+          try {
+            traits = describeImage(d.image)
+          } catch (e) {
+            traitsError = e instanceof Error ? e.message : String(e)
+          }
           client.setSource(d.image)
-          setSourceState({ ...d, analysis, dominantColors })
+          setLookApplied(null)
+          setSourceState({ ...d, analysis, dominantColors, traits, traitsError })
           setUpscaler((u) => (u === 'vectorize' && (dominantColors > 8 || dominantColors === 0) ? 'ai' : u))
         })
         .catch((e: unknown) => setLoadError(e instanceof Error ? e.message : 'Could not read the file.'))
@@ -383,6 +484,9 @@ export default function App(): ReactElement {
     setLook,
     preset,
     applyPreset,
+    applyLook,
+    undoLook,
+    lookResult,
     settings,
     update,
     r,
@@ -392,7 +496,7 @@ export default function App(): ReactElement {
     setWidth,
     resetWidth,
     sz,
-    finish: preset?.mockupFinish ?? r.finish,
+    finish: finishOverride ?? preset?.mockupFinish ?? r.finish,
     upscaler,
     setUpscaler,
     vectorOk,
@@ -414,6 +518,7 @@ export default function App(): ReactElement {
         <header className="top">
           <h1>DTF Prep</h1>
           <p className="tag">Artwork in. Print-ready transfer out. Not a block sticker.</p>
+          <p className="flow">Upload your art, describe the look you want, and the app sets everything up and explains it. Then check the garment, size and fine-tuning. Steps: 1 Upload, 2 Describe the look, 3 Garment, 4 Placement &amp; size, 5 Knock out (fine-tune), 6 Upscale, 7 Export.</p>
         </header>
         <main className="layout">
           <div className="controls">
